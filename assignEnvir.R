@@ -1,14 +1,22 @@
 
-assignEnvir <- function(data, lonlatdate = c("Lon", "Lat", "Date"), 
+assignEnvir <- function(data, 
                         envirSource, fields, datasetid,
                         url = "https://upwell.pfeg.noaa.gov/erddap/", 
+                        timeResolution = 'day',
                         flip_direction = "none"){
   
   # Cargar paquetes necesarios
   require(terra)
+  require(lubridate)
+  
+  # Define input data col names:
+  lonlatdate = c("Lon", "Lat", "Date")
   
   # Si la carpeta de descarga de archivos no existe, se creará
-  if(!dir.exists(outDir)) dir.create(path = outDir, showWarnings = FALSE, recursive = TRUE)
+  if(!dir.exists(saveEnvDir)) dir.create(path = saveEnvDir, showWarnings = FALSE, recursive = TRUE)
+  
+  # Some checking:
+  if(!(timeResolution %in% c('day', 'month'))) stop("'timeResolution' should be 'day' or 'month'")
   
   # Specify data:
   exPts = data
@@ -42,7 +50,7 @@ assignEnvir <- function(data, lonlatdate = c("Lon", "Lat", "Date"),
                            fields = fields, 
                            read = FALSE,
                            url = url,
-                           store = disk(outDir))  
+                           store = disk(saveEnvDir))  
     
     # Leer el archivo nc descargado
     # La función rast (del paquete terra) lee los datos del archivo descargado 
@@ -59,8 +67,15 @@ assignEnvir <- function(data, lonlatdate = c("Lon", "Lat", "Date"),
       envirData <- flip(x = envirData, direction = "horizontal")
     }
     
+    # Transform Date column based on time resolution of env data:
+    tempPts$newDate = tempPts$Date
+    if(timeResolution == 'month') {
+      this_day = day(as.Date(time(envirData)))[match(month(monthList[i]), month(as.Date(time(envirData))))]
+      day(tempPts$newDate) <- this_day
+    } 
+    
     # Hacer un match entre las fechas del subset y las del archivo nc descargado
-    index <- match(tempPts$Date, as.Date(time(envirData)))
+    index <- match(tempPts$newDate, as.Date(time(envirData)))
     
     # Tomar el objeto con la información ambiental
     envirValues <- envirData %>% 
@@ -99,7 +114,7 @@ assignEnvir <- function(data, lonlatdate = c("Lon", "Lat", "Date"),
     
     # Renombrar el archivo descargado
     file.rename(from = gettingData$summary$filename, 
-                to = paste0(outDir, 
+                to = paste0(saveEnvDir, 
                             paste(fields, envirSource, 
                                   format(datelim[1], format = '%Y-%m-%d'),
                                   format(datelim[2], format = '%Y-%m-%d'),
