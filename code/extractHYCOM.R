@@ -127,8 +127,8 @@ extractHYCOM <- function(data, savePath, fields){
         file.rename(from = gettingData$filename, 
                     to = paste0(saveEnvDir, 
                                 paste(fields, 'HYCOM', 
-                                      format(datelim[1], format = '%Y-%m-%d'),
-                                      format(datelim[2], format = '%Y-%m-%d'),
+                                      format(datelim[[k]][1], format = '%Y-%m-%d'),
+                                      format(datelim[[k]][2], format = '%Y-%m-%d'),
                                       sep = '_'),
                                 ".nc") )
         listCount = listCount + 1
