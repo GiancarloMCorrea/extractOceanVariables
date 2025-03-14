@@ -49,13 +49,8 @@ envData = extractHYCOM(data = exPts,
                        savePath = saveEnvDir,
                        fields = fields)
 
-# Add env variable column 
-col_name = tail(names(newDat), 1)
-env_vector = as.vector(newDat[tail(names(newDat), 1)])
-mainDat[,col_name] = env_vector
-
 # Save new data with environmental information:
-write.csv(mainDat, file = "data_with_env_var.csv", row.names = FALSE)
+write.csv(envData, file = paste0("data_with_", fields, "_HYCOM.csv"), row.names = FALSE)
 
 
 # -------------------------------------------------------------------------
