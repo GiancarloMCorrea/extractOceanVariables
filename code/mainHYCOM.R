@@ -4,17 +4,15 @@ require(ggplot2)
 require(sf)
 require(rerddap)
 require(dplyr)
-theme_set(theme_classic())
-# Cargar función
-source("assignEnvir.R")
+# Load auxiliary functions
+source("code/extractHYCOM.R")
+source('code/downloadHYCOM.R')
+source('code/auxFunctions.R')
 
 # -------------------------------------------------------------------------
-# Explore dataset id for the desired variable:
-out <- ed_search(query='noaacwSMOSsssDaily')
-View(out$info)
-
-# Define URL (default):
-url <- eurl()
+# Get familiar with HYCOM data:
+# https://www.hycom.org/dataserver
+# In most cases, you are interested in GLBv0.08 and GLBy0.08
 
 # Define folder where environmental datasets will be stored:
 saveEnvDir <- "C:/Use/GitHub/extractOceanVariables/env_data/"
@@ -23,53 +21,33 @@ saveEnvDir <- "C:/Use/GitHub/extractOceanVariables/env_data/"
 # Read data:
 # IMPORTANT: do not change the 'mainDat' object name
 mainDat <- readr::read_csv(file = "data/Surveys13_20LonLat.csv") 
+mainDat = mainDat %>% dplyr::filter(Year == 2018, Month %in% c('11'))
+head(mainDat)
 
 # Define Lan Lot Date columns in 'mainDat':
 lonlat_cols <- c("Lon_M", "Lat_M")
 date_col = "Date"
 
 # -------------------------------------------------------------------------
-# For temperature (SST)
+# For temperature (SST): 'water_temp'
+# For salinity (SSS): 'salinity'
 # Define source and variable
-
-# MUR analysis (0.01 deg resolution):
-envirSource <- "MUR"
-timeResolution = "month" # 'day' or 'month'
-datasetid <- "jplMURSST41mday" # daily: "jplMURSST41", monthly: "jplMURSST41mday"
-info(datasetid = datasetid) # check nae of 'field'
-fields <- "sst"
-flip_direction <- "none" # is rotation needed?: 'v' or 'h' or 'none
-
-
-# -------------------------------------------------------------------------
-# For chlorophyll (CHL)
-# Define source and variable
-
-# MODIS (4km resolution):
-envirSource <- "MODIS"
-timeResolution = "month" # 'day' or 'month'
-datasetid <- "erdMH1chlamday" # daily: "erdMH1chla1day", monthly: "erdMH1chlamday"
-info(datasetid = datasetid) # check nae of 'field'
-fields <- "chlorophyll"
-flip_direction <- "none" # is rotation needed?: 'v' or 'h' or 'none
+fields = 'salinity'
 
 # -------------------------------------------------------------------------
 # Preprocess the data:
-exPts <- mainDat %>% select(all_of(c(lonlat_cols, date_col))) %>% dplyr::rename(Lon = lonlat_cols[1],
-                                                                               Lat = lonlat_cols[2],
-                                                                               Date = date_col)
+exPts <- mainDat %>% dplyr::select(all_of(c(lonlat_cols, date_col))) %>% 
+            dplyr::rename(Lon = lonlat_cols[1],
+                          Lat = lonlat_cols[2],
+                          Date = date_col)
 exPts$Date = as.Date(exPts$Date)
 # Add month column:
 exPts = exPts %>% mutate(month = as.Date(format(x = Date, format = "%Y-%m-01")))
 
 # Ejecutar función
-envData = assignEnvir(data           = exPts, 
-                     envirSource    = envirSource, 
-                     fields         = fields, 
-                     datasetid      = datasetid, 
-                     url            = url, 
-                     timeResolution = timeResolution,
-                     flip_direction = flip_direction)
+envData = extractHYCOM(data = exPts,
+                       savePath = saveEnvDir,
+                       fields = fields)
 
 # Add env variable column 
 col_name = tail(names(newDat), 1)

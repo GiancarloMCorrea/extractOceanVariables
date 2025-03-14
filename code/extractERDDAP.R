@@ -1,9 +1,8 @@
-
-assignEnvir <- function(data, 
+extractERDDAP <- function(data, 
                         envirSource, fields, datasetid,
                         url = "https://upwell.pfeg.noaa.gov/erddap/", 
                         timeResolution = 'day',
-                        flip_direction = "none"){
+                        flip_direction = "none") {
   
   # Cargar paquetes necesarios
   require(terra)
@@ -14,10 +13,7 @@ assignEnvir <- function(data,
   
   # Si la carpeta de descarga de archivos no existe, se creará
   if(!dir.exists(saveEnvDir)) dir.create(path = saveEnvDir, showWarnings = FALSE, recursive = TRUE)
-  
-  # Some checking:
-  if(!(timeResolution %in% c('day', 'month'))) stop("'timeResolution' should be 'day' or 'month'")
-  
+
   # Specify data:
   exPts = data
   
@@ -67,16 +63,9 @@ assignEnvir <- function(data,
       envirData <- flip(x = envirData, direction = "horizontal")
     }
     
-    # Transform Date column based on time resolution of env data:
-    tempPts$newDate = tempPts$Date
-    if(timeResolution == 'month') {
-      this_day = day(as.Date(time(envirData)))[match(month(monthList[i]), month(as.Date(time(envirData))))]
-      day(tempPts$newDate) <- this_day
-    } 
-    
-    # Hacer un match entre las fechas del subset y las del archivo nc descargado
-    index <- match(tempPts$newDate, as.Date(time(envirData)))
-    
+    # Find the closest date position:
+    index <- sapply(tempPts$Date, find_date, env_date = as.Date(time(envirData)))
+        
     # Tomar el objeto con la información ambiental
     envirValues <- envirData %>% 
       
@@ -122,6 +111,8 @@ assignEnvir <- function(data,
                             ".nc")
                 )
                   
+    cat("Month", as.character(monthList[i]), "ready", "\n")
+
   } # by month loop
   
   # Concatenar los resultados almacenados en output para obtener un data frame
