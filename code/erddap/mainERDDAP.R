@@ -24,7 +24,7 @@ saveEnvDir <- "C:/Use/GitHub/extractOceanVariables/env_data"
 # -------------------------------------------------------------------------
 # Read data:
 mainDat <- readr::read_csv(file = "data/Surveys13_20LonLat.csv") 
-mainDat = mainDat %>% dplyr::filter(Year == 2018)
+mainDat = mainDat %>% dplyr::filter(Year == 2015)
 
 # Define Lan Lot Date columns in 'mainDat':
 lonlat_cols <- c("Lon_M", "Lat_M")
@@ -34,24 +34,23 @@ date_col = "Date"
 # For temperature (SST)
 # Define source and variable
 
-# MUR analysis (0.01 deg resolution):
-envirSource <- "MUR"
-datasetid <- "jplMURSST41mday" # daily: "jplMURSST41", monthly: "jplMURSST41mday"
-url <- eurl()
-info(datasetid = datasetid, url = url) # check nae of 'field'
-fields <- "sst"
+# # MUR analysis (0.01 deg resolution):
+# envirSource <- "MUR"
+# datasetid <- "jplMURSST41mday" # daily: "jplMURSST41", monthly: "jplMURSST41mday"
+# url <- eurl()
+# info(datasetid = datasetid, url = url) # check 'field'
+# fields <- "sst"
 
 # -------------------------------------------------------------------------
 # For chlorophyll (CHL)
 # Define source and variable
 
-# # MODIS (4km resolution):
-# envirSource <- "MODIS"
-# timeResolution = "month" # 'day' or 'month'
-# datasetid <- "erdMH1chlamday" # daily: "erdMH1chla1day", monthly: "erdMH1chlamday"
-# url <- eurl()
-# info(datasetid = datasetid, url = url) # check nae of 'field'
-# fields <- "chlorophyll"
+# MODIS (4km resolution):
+envirSource <- "MODIS"
+datasetid <- "erdMH1chlamday" # daily: "erdMH1chla1day", monthly: "erdMH1chlamday"
+url <- eurl()
+info(datasetid = datasetid, url = url) # check 'field'
+fields <- "chlorophyll"
 
 # -------------------------------------------------------------------------
 
@@ -67,6 +66,11 @@ envData = extractERDDAP(data           = mainDat,
 # Save new data with environmental information:
 write.csv(envData, file = paste0("data_with_", fields, "_", envirSource, ".csv"), row.names = FALSE)
 
+xa = fill_NAvals(data = envData, 
+                 lonlat_cols    = lonlat_cols,
+                 group_col = 'Crucero_2',
+                 var_col = 'chlorophyll_HYCOM', 
+                 radius = 10)
 
 # -------------------------------------------------------------------------
 # 

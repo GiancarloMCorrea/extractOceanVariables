@@ -27,7 +27,7 @@ extractERDDAP <- function(data, lonlat_cols, date_col,
   
   # Set new column name with env information:
   newNames <- "new_envir"
-  names(newNames) <- paste(fields, "HYCOM", sep = "_")
+  names(newNames) <- paste(fields, envirSource, sep = "_")
   
   # Get unique months
   monthList <- unique(exPts$month)
@@ -38,10 +38,10 @@ extractERDDAP <- function(data, lonlat_cols, date_col,
   # Loop over unique months
   for(i in seq_along(monthList)){
     
-    # Tomar la tabla de ejemplo
+    # Filter month
     tempPts <- exPts %>% filter(month == monthList[i])
     
-    # Obtener límites en lon, lat y tiempo para el subset de puntos
+    # Lon lat time ranges:
     xlim <- range(tempPts[,lonlatdate[1]]) + 0.5*c(-1, 1)
     ylim <- range(tempPts[,lonlatdate[2]]) + 0.5*c(-1, 1)
     datelim <- seq(from = monthList[i], by = "month", length.out = 2) - c(0, 1)
