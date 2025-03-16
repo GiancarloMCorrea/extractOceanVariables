@@ -1,26 +1,40 @@
 # Get HYCOM data based on lonlat time:
-extractHYCOM <- function(data, savePath, fields){
+extractHYCOM <- function(data, lonlat_cols, date_col,
+                         savePath, fields, saveEnvFiles = FALSE){
   
   # Cargar paquetes necesarios
   require(terra)
   require(lubridate)
   
-  # Define input data col names:
+  # Define input data col names used in this function:
+  # DO NOT CHANGE
   lonlatdate = c("Lon", "Lat", "Date")
   
-  # Si la carpeta de descarga de archivos no existe, se creará
+  # Create id rows to do match later:
+  data = data %>% mutate(id_row = 1:n())
+  
+  # Preprocess the data:
+  exPts <- data %>% select(all_of(c(lonlat_cols, date_col, 'id_row'))) %>% dplyr::rename(Lon = lonlat_cols[1],
+                                                                                         Lat = lonlat_cols[2],
+                                                                                         Date = date_col)
+  exPts$Date = as.Date(exPts$Date)
+  # Add month column:
+  exPts = exPts %>% mutate(month = as.Date(format(x = Date, format = "%Y-%m-01")))
+  
+  # Create folder to save env information:
   if(!dir.exists(savePath)) dir.create(path = savePath, showWarnings = FALSE, recursive = TRUE)
   
-  # Specify data:
-  exPts = data
+  # Set new column name with env information:
+  newNames <- "new_envir"
+  names(newNames) <- paste(fields, "HYCOM", sep = "_")
   
-  # Obtener vector con todos los mes-año sin repeticiones
+  # Get unique months
   monthList <- unique(exPts$month)
   
-  # Definir una lista vacía que guardará los datos de salida
+  # List to save results
   output <- list()
   listCount = 1
-  # Iniciar un bucle a lo largo de los valores únicos de año-mes
+  # Loop over unique months
   for(i in seq_along(monthList)){
     
     # Subset month
@@ -32,6 +46,8 @@ extractHYCOM <- function(data, savePath, fields){
     datelim <- list(seq(from = monthList[i], by = "month", length.out = 2) - c(0, 1))
     
     # Split for months with different sources:
+    # This is done because there are different HYCOM sources with
+    # different start and end date
     if(monthList[i] == as.Date("2013-08-01")) { 
       datelim[[1]] = as.Date(c("2013-08-01", "2013-08-19"))
       datelim[[2]] = as.Date(c("2013-08-20", "2013-08-31"))
@@ -45,6 +61,7 @@ extractHYCOM <- function(data, savePath, fields){
       datelim[[2]] = as.Date(c("2016-04-18", "2016-04-30"))
     }    
     
+    max_days_diff = numeric(length(datelim))
     for(k in seq_along(datelim)) {
       
       # Subset by days
@@ -61,16 +78,9 @@ extractHYCOM <- function(data, savePath, fields){
                                     vars = fields,
                                     dir = savePath)  
       
-      # Leer el archivo nc descargado
-      # La función rast (del paquete terra) lee los datos del archivo descargado 
-      # considerando TODOS los días. En este ejemplo, cada archivo descargado 
-      # contendrá la información de un mes (año-mes), por lo que cada archivo podrá
-      # tener hasta 31 capas (días)
+      # Read downloaded data using terra:
       envirData <- rast(x = gettingData$filename) 
-      # plot(envirData)
-      # is.flipped(envirData)
-      # cat(raster::crs(envirData), '\n')
-      
+
       # Check if flip needed:
       if(is.flipped(envirData)){
         envirData <- flip(x = envirData, direction = "vertical")
@@ -79,6 +89,7 @@ extractHYCOM <- function(data, savePath, fields){
       
       # Find the closest date position:
       index <- sapply(daysPts$Date, find_date, env_date = as.Date(time(envirData)))
+      max_days_diff[k] = max(as.numeric(daysPts$Date - as.Date(time(envirData))[index]))
       
       # Matrix with observed locations:
       lonlat_mat = as.matrix(daysPts[,lonlatdate[1:2]])
@@ -88,60 +99,54 @@ extractHYCOM <- function(data, savePath, fields){
         lonlat_mat[,1] <- lonlat_mat[,1] %% 360
       }
       
-      # Tomar el objeto con la información ambiental
+      # Match spatially and temporally
       envirValues <- envirData %>% 
-        
-        # Hacer el match entre las coordenadas y los datos ambientales
-        # Lo que este paso hace es cruzar las coordenadas y la información ambiental
-        # y lo hace con TODAS las capas (días dentro del año-mes descargado) y luego
-        # devuelve un data.frame en donde cada fila es el dato ambiental para la 
-        # coordenada correspondiente y cada columna es el valor para cada una de las
-        # capas (día del año-mes)
         extract(y = lonlat_mat) %>% 
-        
-        # Añadir como primera columna el índice calculado anteriormente
         mutate(index, .before = 1) %>% 
-        
-        # En este paso, para cada fila de datos, se utiliza el valor almacenado en
-        # 'index' para quedarnos únicamente con el valor del día correspondiente, 
-        # por lo que al final de esta línea obtendremos un vector con los valores
-        # específicos para nuestra coordenada en espacio y tiempo
         apply(1, function(x) x[-1][x[1]])
       
-      # Este paso es necesario para hacer un cambio de nombre de columna en el paso 
-      # siguiente
-      newNames <- "new_envir"
-      names(newNames) <- paste(fields, "HYCOM", sep = "_")
-      
-      # Tomar los datos temporales de nuestro año-mes
+      # Add new column
       output[[listCount]] <- daysPts %>% 
-        
-        # Añadir la información ambiental y darle 'new_envir' como nombre temporal 
-        # de la columna
         mutate(new_envir = envirValues) %>% 
-        
-        # Renombrar la columna pegando el nombre del campo (variable) y la fuente
-        rename(all_of(newNames))
+        rename(all_of(newNames)) %>% 
+        select(c(names(newNames), 'id_row'))
+      listCount = listCount + 1
       
-        # Renombrar el archivo descargado
+      if(saveEnvFiles) {
+        # Rename the downloaded NC file:
         file.rename(from = gettingData$filename, 
-                    to = paste0(saveEnvDir, 
+                    to = paste0(saveEnvDir, '/',
                                 paste(fields, 'HYCOM', 
                                       format(datelim[[k]][1], format = '%Y-%m-%d'),
                                       format(datelim[[k]][2], format = '%Y-%m-%d'),
                                       sep = '_'),
                                 ".nc") )
-        listCount = listCount + 1
-      
+      } else {
+        file.remove(gettingData$filename)
+      }
+        
       } # conditional if data exists
     } # date range loop
       
-    cat("Month", as.character(monthList[i]), "ready, rotation =", rotation_need, "\n")
-                  
+    cat("Month", as.character(monthList[i]), "ready. Maximum number of days difference:", max(max_days_diff), "\n")
+    
   } # by month loop
   
-  # Concatenar los resultados almacenados en output para obtener un data frame
-  # que será el retorno de la función
-  bind_rows(output)
+  merged_output =  bind_rows(output)
+  
+  # Match rows with original dataset:
+  output_df = left_join(data, merged_output, by = 'id_row')
+  
+  if(!identical(nrow(data), nrow(output_df)) | any(is.na(output_df$id_row))){
+    stop('Unexpected error detected when matching. Check step by step carefully.')
+  }
+  
+  output_df = output_df %>% select(-id_row)
+  n_nas = sum(is.na(pull(output_df, names(newNames))))
+  perc_nas = round(n_nas/nrow(output_df)*100, 1)
+  
+  cat("Assignation of environmental information finished. Number of NAs found:", n_nas, paste0("(", perc_nas, "%"), "of your observations)", "\n")
+  
+  return(output_df)
     
 }

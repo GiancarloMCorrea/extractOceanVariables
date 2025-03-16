@@ -6,7 +6,7 @@ require(reticulate)
 require(dplyr)
 require(terra)
 # Load function
-source("code/extractCOPERNICUS.R")
+source("code/copernicus/extractCOPERNICUS.R")
 source('code/auxFunctions.R')
 
 # -------------------------------------------------------------------------
@@ -42,7 +42,7 @@ saveEnvDir <- "C:/Use/GitHub/extractOceanVariables/env_data"
 # Read data:
 # IMPORTANT: do not change the 'mainDat' object name
 mainDat <- readr::read_csv(file = "data/Surveys13_20LonLat.csv") 
-mainDat = mainDat %>% dplyr::filter(Year == 2015, Month %in% c('03'))
+mainDat = mainDat %>% dplyr::filter(Year == 2015)
 
 # Define Lan Lot Date columns in 'mainDat':
 lonlat_cols <- c("Lon_M", "Lat_M")
@@ -53,18 +53,10 @@ date_col = "Date"
 dataid = "cmems_mod_glo_phy_my_0.083deg_P1D-m"
 fields = "mlotst"
 
-# -------------------------------------------------------------------------
-# Preprocess the data:
-exPts <- mainDat %>% dplyr::select(all_of(c(lonlat_cols, date_col))) %>% 
-  dplyr::rename(Lon = lonlat_cols[1],
-                Lat = lonlat_cols[2],
-                Date = date_col)
-exPts$Date = as.Date(exPts$Date)
-# Add month column:
-exPts = exPts %>% mutate(month = as.Date(format(x = Date, format = "%Y-%m-01")))
 
-# Ejecutar función
-envData = extractCOPERNICUS(data = exPts,
+# -------------------------------------------------------------------------
+# Get environmental information:
+envData = extractCOPERNICUS(data = mainDat,
                             savePath = saveEnvDir,
                             dataid = dataid,
                             fields = fields)

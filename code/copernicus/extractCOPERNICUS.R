@@ -1,26 +1,40 @@
 # Get HYCOM data based on lonlat time:
-extractCOPERNICUS <- function(data, savePath, dataid, fields){
+extractCOPERNICUS <- function(data, savePath, dataid, fields,
+                              saveEnvFiles = FALSE){
   
   # Cargar paquetes necesarios
   require(terra)
   require(lubridate)
   
-  # Define input data col names:
+  # Define input data col names used in this function:
+  # DO NOT CHANGE
   lonlatdate = c("Lon", "Lat", "Date")
   
-  # Si la carpeta de descarga de archivos no existe, se creará
+  # Create id rows to do match later:
+  data = data %>% mutate(id_row = 1:n())
+  
+  # Preprocess the data:
+  exPts <- data %>% select(all_of(c(lonlat_cols, date_col, 'id_row'))) %>% dplyr::rename(Lon = lonlat_cols[1],
+                                                                                         Lat = lonlat_cols[2],
+                                                                                         Date = date_col)
+  exPts$Date = as.Date(exPts$Date)
+  # Add month column:
+  exPts = exPts %>% mutate(month = as.Date(format(x = Date, format = "%Y-%m-01")))
+  
+  # Create folder to save env information:
   if(!dir.exists(savePath)) dir.create(path = savePath, showWarnings = FALSE, recursive = TRUE)
   
-  # Specify data:
-  exPts = data
+  # Set new column name with env information:
+  newNames <- "new_envir"
+  names(newNames) <- paste(fields, "HYCOM", sep = "_")
   
-  # Obtener vector con todos los mes-año sin repeticiones
+  # List to save results
   monthList <- unique(exPts$month)
   
   # Definir una lista vacía que guardará los datos de salida
   output <- list()
-  listCount = 1
-  # Iniciar un bucle a lo largo de los valores únicos de año-mes
+
+  # Loop over unique months
   for(i in seq_along(monthList)){
     
     # Subset month
@@ -53,60 +67,52 @@ extractCOPERNICUS <- function(data, savePath, dataid, fields){
       
     # Find the closest date position:
     index <- sapply(tempPts$Date, find_date, env_date = as.Date(time(envirData)))
-      
-    # Matrix with observed locations:
-    lonlat_mat = as.matrix(tempPts[,lonlatdate[1:2]])
-
-    # Tomar el objeto con la información ambiental
+    max_days_diff = max(as.numeric(tempPts$Date - as.Date(time(envirData))[index]))
+    
+    # Match spatially and temporally
     envirValues <- envirData %>% 
-        
-        # Hacer el match entre las coordenadas y los datos ambientales
-        # Lo que este paso hace es cruzar las coordenadas y la información ambiental
-        # y lo hace con TODAS las capas (días dentro del año-mes descargado) y luego
-        # devuelve un data.frame en donde cada fila es el dato ambiental para la 
-        # coordenada correspondiente y cada columna es el valor para cada una de las
-        # capas (día del año-mes)
-        extract(y = lonlat_mat) %>% 
-        
-        # Añadir como primera columna el índice calculado anteriormente
+        extract(y = as.matrix(tempPts[,lonlatdate[1:2]])) %>% 
         mutate(index, .before = 1) %>% 
-        
-        # En este paso, para cada fila de datos, se utiliza el valor almacenado en
-        # 'index' para quedarnos únicamente con el valor del día correspondiente, 
-        # por lo que al final de esta línea obtendremos un vector con los valores
-        # específicos para nuestra coordenada en espacio y tiempo
         apply(1, function(x) x[-1][x[1]])
       
-    # Este paso es necesario para hacer un cambio de nombre de columna en el paso 
-    # siguiente
-    newNames <- "new_envir"
-    names(newNames) <- paste(fields, "COPERNICUS", sep = "_")
-      
-    # Tomar los datos temporales de nuestro año-mes
-    output[[listCount]] <- tempPts %>% 
-        
-        # Añadir la información ambiental y darle 'new_envir' como nombre temporal 
-        # de la columna
+    # Create new column with env information:
+    output[[i]] <- tempPts %>% 
         mutate(new_envir = envirValues) %>% 
-        
-        # Renombrar la columna pegando el nombre del campo (variable) y la fuente
-        rename(all_of(newNames))
+        rename(all_of(newNames))  %>% 
+        select(c(names(newNames), 'id_row'))
       
-    # Renombrar el archivo descargado
-    file.rename(from = NCtmpname, 
+    if(saveEnvFiles) {
+      # Rename the downloaded NC file:
+      file.rename(from = NCtmpname, 
                 to = paste0(saveEnvDir, '/',
                                 paste(fields, 'COPERNICUS', 
                                       format(datelim[1], format = '%Y-%m-%d'),
                                       format(datelim[2], format = '%Y-%m-%d'),
                                       sep = '_'),
                                 ".nc") )
+    } else {
+      file.remove(NCtmpname)
+    }
 
-    cat("Month", as.character(monthList[i]), "ready", "\n")
-                  
+    cat("Month", as.character(monthList[i]), "ready. Maximum number of days difference:", max_days_diff, "\n")
+    
   } # by month loop
   
-  # Concatenar los resultados almacenados en output para obtener un data frame
-  # que será el retorno de la función
-  bind_rows(output)
+  merged_output =  bind_rows(output)
+  
+  # Match rows with original dataset:
+  output_df = left_join(data, merged_output, by = 'id_row')
+  
+  if(!identical(nrow(data), nrow(output_df)) | any(is.na(output_df$id_row))){
+    stop('Unexpected error detected when matching. Check step by step carefully.')
+  }
+  
+  output_df = output_df %>% select(-id_row)
+  n_nas = sum(is.na(pull(output_df, names(newNames))))
+  perc_nas = round(n_nas/nrow(output_df)*100, 1)
+  
+  cat("Assignation of environmental information finished. Number of NAs found:", n_nas, paste0("(", perc_nas, "%"), "of your observations)", "\n")
+  
+  return(output_df)
     
 }

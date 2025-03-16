@@ -25,13 +25,17 @@ extractERDDAP <- function(data, lonlat_cols, date_col,
   # Create folder to save env information:
   if(!dir.exists(saveEnvDir)) dir.create(path = saveEnvDir, showWarnings = FALSE, recursive = TRUE)
   
-  # Obtener vector con todos los mes-año sin repeticiones
+  # Set new column name with env information:
+  newNames <- "new_envir"
+  names(newNames) <- paste(fields, "HYCOM", sep = "_")
+  
+  # Get unique months
   monthList <- unique(exPts$month)
   
-  # Definir una lista vacía que guardará los datos de salida
+  # List to save results
   output <- list()
   
-  # Iniciar un bucle a lo largo de los valores únicos de año-mes
+  # Loop over unique months
   for(i in seq_along(monthList)){
     
     # Tomar la tabla de ejemplo
@@ -73,8 +77,6 @@ extractERDDAP <- function(data, lonlat_cols, date_col,
       apply(1, function(x) x[-1][x[1]])
     
     # Create new column with env information:
-    newNames <- "new_envir"
-    names(newNames) <- paste(fields, envirSource, sep = "_")
     output[[i]] = tempPts %>% 
                     mutate(new_envir = envirValues) %>% 
                     rename(all_of(newNames)) %>% 
@@ -107,6 +109,11 @@ extractERDDAP <- function(data, lonlat_cols, date_col,
   }
   
   output_df = output_df %>% select(-id_row)
+  n_nas = sum(is.na(pull(output_df, names(newNames))))
+  perc_nas = round(n_nas/nrow(output_df)*100, 1)
+  
+  cat("Assignation of environmental information finished. Number of NAs found:", n_nas, paste0("(", perc_nas, "%"), "of your observations)", "\n")
+  
   return(output_df)
 
 }

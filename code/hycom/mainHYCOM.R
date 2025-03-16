@@ -2,11 +2,10 @@ rm(list = ls())
 require(readr)
 require(ggplot2)
 require(sf)
-require(rerddap)
 require(dplyr)
 # Load auxiliary functions
-source("code/extractHYCOM.R")
-source('code/downloadHYCOM.R')
+source("code/hycom/extractHYCOM.R")
+source('code/hycom/downloadHYCOM.R')
 source('code/auxFunctions.R')
 
 # -------------------------------------------------------------------------
@@ -15,14 +14,13 @@ source('code/auxFunctions.R')
 # In most cases, you are interested in GLBv0.08 and GLBy0.08
 
 # Define folder where environmental datasets will be stored:
-saveEnvDir <- "C:/Use/GitHub/extractOceanVariables/env_data/"
+saveEnvDir <- "C:/Use/GitHub/extractOceanVariables/env_data"
 
 # -------------------------------------------------------------------------
 # Read data:
 # IMPORTANT: do not change the 'mainDat' object name
 mainDat <- readr::read_csv(file = "data/Surveys13_20LonLat.csv") 
-mainDat = mainDat %>% dplyr::filter(Year == 2018, Month %in% c('11'))
-head(mainDat)
+mainDat = mainDat %>% dplyr::filter(Year == 2018)
 
 # Define Lan Lot Date columns in 'mainDat':
 lonlat_cols <- c("Lon_M", "Lat_M")
@@ -35,17 +33,11 @@ date_col = "Date"
 fields = 'salinity'
 
 # -------------------------------------------------------------------------
-# Preprocess the data:
-exPts <- mainDat %>% dplyr::select(all_of(c(lonlat_cols, date_col))) %>% 
-            dplyr::rename(Lon = lonlat_cols[1],
-                          Lat = lonlat_cols[2],
-                          Date = date_col)
-exPts$Date = as.Date(exPts$Date)
-# Add month column:
-exPts = exPts %>% mutate(month = as.Date(format(x = Date, format = "%Y-%m-01")))
 
-# Ejecutar función
-envData = extractHYCOM(data = exPts,
+# Get environmental information:
+envData = extractHYCOM(data = mainDat,
+                       lonlat_cols = lonlat_cols,
+                       date_col = date_col,
                        savePath = saveEnvDir,
                        fields = fields)
 

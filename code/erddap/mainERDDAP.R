@@ -55,7 +55,7 @@ fields <- "sst"
 
 # -------------------------------------------------------------------------
 
-# Ejecutar función
+# Get environmental information:
 envData = extractERDDAP(data           = mainDat, 
                         lonlat_cols    = lonlat_cols,
                         date_col       = date_col,
