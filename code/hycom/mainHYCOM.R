@@ -1,9 +1,15 @@
 rm(list = ls())
+
+# Load libraries:
 require(readr)
 require(ggplot2)
 require(sf)
 require(dplyr)
-# Load auxiliary functions
+require(terra)
+require(viridis)
+require(lubridate)
+
+# Load auxiliary functions:
 source("code/hycom/extractHYCOM.R")
 source('code/hycom/downloadHYCOM.R')
 source('code/auxFunctions.R')
@@ -22,7 +28,7 @@ saveEnvDir <- "C:/Use/GitHub/extractOceanVariables/env_data"
 mainDat <- readr::read_csv(file = "data/Surveys13_20LonLat.csv") 
 mainDat = mainDat %>% dplyr::filter(Year == 2018)
 
-# Define Lan Lot Date columns in 'mainDat':
+# Define Lan/Lot and Date column names in your dataset:
 lonlat_cols <- c("Lon_M", "Lat_M")
 date_col = "Date"
 
@@ -34,7 +40,8 @@ fields = 'salinity'
 
 # -------------------------------------------------------------------------
 
-# Get environmental information:
+# Download environmental information and matching with observations:
+# A column with the environmental variable will be added
 envData = extractHYCOM(data = mainDat,
                        lonlat_cols = lonlat_cols,
                        date_col = date_col,
@@ -42,20 +49,18 @@ envData = extractHYCOM(data = mainDat,
                        fields = fields)
 
 # Save new data with environmental information:
-write.csv(envData, file = paste0("data_with_", fields, "_HYCOM.csv"), row.names = FALSE)
+write.csv(envData, file = file.path('data', paste0("data_with_", fields, "_HYCOM.csv")), row.names = FALSE)
 
 
 # -------------------------------------------------------------------------
-# 
-# # Make some plots:
-# MyPoints = mainDat %>% st_as_sf(coords = c("Lon_M", "Lat_M"), crs = 4326, remove = FALSE)
-# worldmap = map_data("world")
-# colnames(worldmap) = c("X", "Y", "PID", "POS", "region", "subregion")
-# 
-# ggplot() + 
-#   geom_sf(data = MyPoints, aes(color = chlorophyll_MODIS), size = 1) +
-#   geom_polygon(data = worldmap, aes(X, Y, group=PID), fill = "gray60", color=NA) +
-#   coord_sf(expand = FALSE, xlim = c(-84, -70), ylim = c(-19, -3)) +
-#   scale_color_viridis_c() +
-#   xlab(NULL) + ylab(NULL) +
-#   facet_wrap(~Crucero_2)
+# Fill NAs if desired:
+envData_fill = fill_NAvals(data = envData, 
+                           lonlat_cols = lonlat_cols,
+                           group_col = 'Crucero_2',
+                           var_col = 'salinity_HYCOM', 
+                           radius = 5)
+
+# -------------------------------------------------------------------------
+# Make explorative maps:
+plot_map(data = envData_fill, lonlat_cols = c("Lon_M", "Lat_M"), 
+         group_col = 'Crucero_2', var_col = 'salinity_HYCOM')

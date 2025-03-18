@@ -1,10 +1,15 @@
 rm(list = ls())
+
+# Load libraries:
 require(readr)
 require(ggplot2)
 require(sf)
-require(rerddap)
 require(dplyr)
-# Load function
+require(terra)
+require(viridis)
+require(lubridate)
+require(rerddap)
+# Load auxiliary functions:
 source("code/erddap/extractERDDAP.R")
 source('code/auxFunctions.R')
 
@@ -19,42 +24,43 @@ source('code/auxFunctions.R')
 # -------------------------------------------------------------------------
 
 # Define folder where environmental datasets will be stored:
-saveEnvDir <- "C:/Use/GitHub/extractOceanVariables/env_data"
+saveEnvDir = "C:/Use/GitHub/extractOceanVariables/env_data"
 
 # -------------------------------------------------------------------------
-# Read data:
+# Read data with observations:
 mainDat <- readr::read_csv(file = "data/Surveys13_20LonLat.csv") 
 mainDat = mainDat %>% dplyr::filter(Year == 2015)
 
-# Define Lan Lot Date columns in 'mainDat':
-lonlat_cols <- c("Lon_M", "Lat_M")
+# Define Lan/Lot and Date column names in your dataset:
+lonlat_cols = c("Lon_M", "Lat_M")
 date_col = "Date"
 
 # -------------------------------------------------------------------------
 # For temperature (SST)
-# Define source and variable
+# Define ERDDAP source and variable name
 
-# # MUR analysis (0.01 deg resolution):
-# envirSource <- "MUR"
-# datasetid <- "jplMURSST41mday" # daily: "jplMURSST41", monthly: "jplMURSST41mday"
-# url <- eurl()
-# info(datasetid = datasetid, url = url) # check 'field'
-# fields <- "sst"
+# MUR analysis (0.01 deg resolution):
+envirSource <- "MUR"
+datasetid <- "jplMURSST41mday" # daily: "jplMURSST41", monthly: "jplMURSST41mday"
+url <- eurl()
+info(datasetid = datasetid, url = url) # check 'field'
+fields <- "sst"
 
 # -------------------------------------------------------------------------
 # For chlorophyll (CHL)
 # Define source and variable
 
-# MODIS (4km resolution):
-envirSource <- "MODIS"
-datasetid <- "erdMH1chlamday" # daily: "erdMH1chla1day", monthly: "erdMH1chlamday"
-url <- eurl()
-info(datasetid = datasetid, url = url) # check 'field'
-fields <- "chlorophyll"
+# # MODIS (4km resolution):
+# envirSource <- "MODIS"
+# datasetid <- "erdMH1chlamday" # daily: "erdMH1chla1day", monthly: "erdMH1chlamday"
+# url <- eurl()
+# info(datasetid = datasetid, url = url) # check 'field'
+# fields <- "chlorophyll"
 
 # -------------------------------------------------------------------------
 
-# Get environmental information:
+# Download environmental information and matching with observations:
+# A column with the environmental variable will be added
 envData = extractERDDAP(data           = mainDat, 
                         lonlat_cols    = lonlat_cols,
                         date_col       = date_col,
@@ -64,25 +70,17 @@ envData = extractERDDAP(data           = mainDat,
                         url            = url)
 
 # Save new data with environmental information:
-write.csv(envData, file = paste0("data_with_", fields, "_", envirSource, ".csv"), row.names = FALSE)
-
-xa = fill_NAvals(data = envData, 
-                 lonlat_cols    = lonlat_cols,
-                 group_col = 'Crucero_2',
-                 var_col = 'chlorophyll_HYCOM', 
-                 radius = 10)
+write.csv(envData, file = file.path('data', paste0("data_with_", fields, "_", envirSource, ".csv")), row.names = FALSE)
 
 # -------------------------------------------------------------------------
-# 
-# Make some plots:
-MyPoints = envData %>% st_as_sf(coords = c("Lon_M", "Lat_M"), crs = 4326, remove = FALSE)
-worldmap = map_data("world")
-colnames(worldmap) = c("X", "Y", "PID", "POS", "region", "subregion")
+# Fill NAs if desired:
+envData_fill = fill_NAvals(data = envData, 
+                           lonlat_cols = lonlat_cols,
+                           group_col = 'Crucero_2',
+                           var_col = 'sst_MUR', 
+                           radius = 5)
 
-ggplot() +
-  geom_sf(data = MyPoints, aes(color = sst_MUR), size = 1) +
-  geom_polygon(data = worldmap, aes(X, Y, group=PID), fill = "gray60", color=NA) +
-  coord_sf(expand = FALSE, xlim = c(-84, -70), ylim = c(-19, -3)) +
-  scale_color_viridis_c() +
-  xlab(NULL) + ylab(NULL) +
-  facet_wrap(~Crucero_2)
+# -------------------------------------------------------------------------
+# Make explorative maps:
+plot_map(data = envData_fill, lonlat_cols = c("Lon_M", "Lat_M"), 
+         group_col = 'Crucero_2', var_col = 'sst_MUR')

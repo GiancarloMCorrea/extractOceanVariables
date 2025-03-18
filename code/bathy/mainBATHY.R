@@ -1,25 +1,30 @@
 rm(list = ls())
+
+# Load libraries:
 require(readr)
 require(ggplot2)
 require(sf)
-require(marmap)
 require(dplyr)
-# Load function
+require(terra)
+require(viridis)
+require(lubridate)
+require(marmap)
+# Load auxiliary functions:
 source('code/auxFunctions.R')
 source('code/bathy/extractBATHY.R')
 
 # -------------------------------------------------------------------------
-# Read data:
+# Read data with observations:
 mainDat <- readr::read_csv(file = "data/Surveys13_20LonLat.csv") 
 mainDat = mainDat %>% dplyr::filter(Year == 2018)
 
-# Define Lan Lot Date columns in 'mainDat':
+# Define Lan/Lot column names in your dataset:
 lonlat_cols <- c("Lon_M", "Lat_M")
 
 # -------------------------------------------------------------------------
 
-# Get bathymetry information: 
+# Get bathymetry information for each observation: 
 envData = extractBATHY(data = mainDat, lonlat_cols = lonlat_cols)
 
 # Save new data with environmental information:
-write.csv(envData, file = paste0("data_with_bathy.csv"), row.names = FALSE)
+write.csv(envData, file = file.path('data', paste0("data_with_bathy.csv")), row.names = FALSE)

@@ -1,11 +1,16 @@
 rm(list = ls())
+
+# Load libraries:
 require(readr)
 require(ggplot2)
 require(sf)
-require(reticulate)
 require(dplyr)
 require(terra)
-# Load function
+require(viridis)
+require(lubridate)
+require(reticulate)
+
+# Load auxiliary functions:
 source("code/copernicus/extractCOPERNICUS.R")
 source('code/auxFunctions.R')
 
@@ -39,13 +44,12 @@ atributos_cms <- import(module = "copernicusmarine")
 saveEnvDir <- "C:/Use/GitHub/extractOceanVariables/env_data"
 
 # -------------------------------------------------------------------------
-# Read data:
-# IMPORTANT: do not change the 'mainDat' object name
+# Read data with observations:
 mainDat <- readr::read_csv(file = "data/Surveys13_20LonLat.csv") 
 mainDat = mainDat %>% dplyr::filter(Year == 2015)
 
-# Define Lan Lot Date columns in 'mainDat':
-lonlat_cols <- c("Lon_M", "Lat_M")
+# Define Lan/Lot and Date column names in your dataset:
+lonlat_cols = c("Lon_M", "Lat_M")
 date_col = "Date"
 
 # -------------------------------------------------------------------------
@@ -53,14 +57,26 @@ date_col = "Date"
 dataid = "cmems_mod_glo_phy_my_0.083deg_P1D-m"
 fields = "mlotst"
 
-
 # -------------------------------------------------------------------------
-# Get environmental information:
+# Download environmental information and matching with observations:
+# A column with the environmental variable will be added
 envData = extractCOPERNICUS(data = mainDat,
                             savePath = saveEnvDir,
                             dataid = dataid,
                             fields = fields)
 
 # Save new data with environmental information:
-write.csv(envData, file = paste0("data_with_", fields, "_COPERNICUS.csv"), row.names = FALSE)
+write.csv(envData, file = file.path('data', paste0("data_with_", fields, "_COPERNICUS.csv")), row.names = FALSE)
 
+# -------------------------------------------------------------------------
+# Fill NAs if desired:
+envData_fill = fill_NAvals(data = envData, 
+                           lonlat_cols = lonlat_cols,
+                           group_col = 'Crucero_2',
+                           var_col = 'sst_MUR', 
+                           radius = 5)
+
+# -------------------------------------------------------------------------
+# Make explorative maps:
+plot_map(data = envData_fill, lonlat_cols = c("Lon_M", "Lat_M"), 
+         group_col = 'Crucero_2', var_col = 'sst_MUR')

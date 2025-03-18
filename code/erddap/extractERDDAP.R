@@ -1,28 +1,26 @@
+# Download environmental information and match it with observations.
 extractERDDAP <- function(data, lonlat_cols, date_col,
-                        envirSource, fields, datasetid,
-                        url = "https://upwell.pfeg.noaa.gov/erddap/", 
-                        saveEnvFiles = FALSE) {
-  
-  # Cargar paquetes necesarios
-  require(terra)
-  require(lubridate)
+                          envirSource, fields, datasetid,
+                          url = "https://upwell.pfeg.noaa.gov/erddap/", 
+                          saveEnvFiles = FALSE) {
   
   # Define input data col names used in this function:
-  # DO NOT CHANGE
   lonlatdate = c("Lon", "Lat", "Date")
   
   # Create id rows to do match later:
   data = data %>% mutate(id_row = 1:n())
   
   # Preprocess the data:
-  exPts <- data %>% select(all_of(c(lonlat_cols, date_col, 'id_row'))) %>% dplyr::rename(Lon = lonlat_cols[1],
-                                                                               Lat = lonlat_cols[2],
-                                                                               Date = date_col)
+  exPts <- data %>% dplyr::select(dplyr::all_of(c(lonlat_cols, date_col, 'id_row'))) %>% 
+    dplyr::rename(Lon = lonlat_cols[1],
+                  Lat = lonlat_cols[2],
+                  Date = date_col)
   exPts$Date = as.Date(exPts$Date)
+  
   # Add month column:
   exPts = exPts %>% mutate(month = as.Date(format(x = Date, format = "%Y-%m-01")))
   
-  # Create folder to save env information:
+  # Create folder to save environmental information:
   if(!dir.exists(saveEnvDir)) dir.create(path = saveEnvDir, showWarnings = FALSE, recursive = TRUE)
   
   # Set new column name with env information:
@@ -39,15 +37,15 @@ extractERDDAP <- function(data, lonlat_cols, date_col,
   for(i in seq_along(monthList)){
     
     # Filter month
-    tempPts <- exPts %>% filter(month == monthList[i])
+    tempPts = exPts %>% filter(month == monthList[i])
     
     # Lon lat time ranges:
-    xlim <- range(tempPts[,lonlatdate[1]]) + 0.5*c(-1, 1)
-    ylim <- range(tempPts[,lonlatdate[2]]) + 0.5*c(-1, 1)
-    datelim <- seq(from = monthList[i], by = "month", length.out = 2) - c(0, 1)
+    xlim = range(tempPts[,lonlatdate[1]]) + 0.5*c(-1, 1)
+    ylim = range(tempPts[,lonlatdate[2]]) + 0.5*c(-1, 1)
+    datelim = seq(from = monthList[i], by = "month", length.out = 2) - c(0, 1)
     
     # Download information from ERDDAP:
-    gettingData <- griddap(datasetx = datasetid, 
+    gettingData = griddap(datasetx = datasetid, 
                            time = format(x = datelim, 
                                          format = "%Y-%m-%dT12:00:00Z"),
                            longitude = xlim, 
@@ -58,16 +56,16 @@ extractERDDAP <- function(data, lonlat_cols, date_col,
                            store = disk(saveEnvDir))  
     
     # Read downloaded data using terra:
-    envirData <- rast(x = gettingData$summary$filename) 
+    envirData = rast(x = gettingData$summary$filename) 
      
     # Check if flip is needed
     if(is.flipped(envirData)){
-      envirData <- flip(x = envirData)
+      envirData = flip(x = envirData)
     }
     plot(envirData)
     
     # Find the closest date position to match:
-    index <- sapply(tempPts$Date, find_date, env_date = as.Date(time(envirData)))
+    index = sapply(tempPts$Date, find_date, env_date = as.Date(time(envirData)))
     max_days_diff = max(as.numeric(tempPts$Date - as.Date(time(envirData))[index]))
         
     # Match spatially and temporally
@@ -108,7 +106,7 @@ extractERDDAP <- function(data, lonlat_cols, date_col,
     stop('Unexpected error detected when matching. Check step by step carefully.')
   }
   
-  output_df = output_df %>% select(-id_row)
+  output_df = output_df %>% dplyr::select(-id_row)
   n_nas = sum(is.na(pull(output_df, names(newNames))))
   perc_nas = round(n_nas/nrow(output_df)*100, 1)
   

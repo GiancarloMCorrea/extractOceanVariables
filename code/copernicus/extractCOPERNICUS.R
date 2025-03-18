@@ -1,23 +1,20 @@
-# Get HYCOM data based on lonlat time:
+# Download environmental information and match it with observations.
 extractCOPERNICUS <- function(data, savePath, dataid, fields,
                               saveEnvFiles = FALSE){
-  
-  # Cargar paquetes necesarios
-  require(terra)
-  require(lubridate)
-  
+
   # Define input data col names used in this function:
-  # DO NOT CHANGE
   lonlatdate = c("Lon", "Lat", "Date")
   
   # Create id rows to do match later:
   data = data %>% mutate(id_row = 1:n())
   
   # Preprocess the data:
-  exPts <- data %>% select(all_of(c(lonlat_cols, date_col, 'id_row'))) %>% dplyr::rename(Lon = lonlat_cols[1],
-                                                                                         Lat = lonlat_cols[2],
-                                                                                         Date = date_col)
+  exPts <- data %>% select(all_of(c(lonlat_cols, date_col, 'id_row'))) %>% 
+                    dplyr::rename(Lon = lonlat_cols[1],
+                                  Lat = lonlat_cols[2],
+                                  Date = date_col)
   exPts$Date = as.Date(exPts$Date)
+  
   # Add month column:
   exPts = exPts %>% mutate(month = as.Date(format(x = Date, format = "%Y-%m-01")))
   
@@ -40,12 +37,12 @@ extractCOPERNICUS <- function(data, savePath, dataid, fields,
     # Subset month
     tempPts <- exPts %>% filter(month == monthList[i])
     
-    # Obtener límites en lon, lat y tiempo para el subset de puntos
-    xlim <- range(tempPts[,lonlatdate[1]]) + 0.5*c(-1, 1)
-    ylim <- range(tempPts[,lonlatdate[2]]) + 0.5*c(-1, 1)
-    datelim <- seq(from = monthList[i], by = "month", length.out = 2) - c(0, 1)
+    # Lon lat time ranges:
+    xlim = range(tempPts[,lonlatdate[1]]) + 0.5*c(-1, 1)
+    ylim = range(tempPts[,lonlatdate[2]]) + 0.5*c(-1, 1)
+    datelim = seq(from = monthList[i], by = "month", length.out = 2) - c(0, 1)
     
-    # Download data:
+    # Download information from COPERNICUS::
     NCtmpname = file.path(savePath, "tmp_copernicus.nc")
     atributos_cms$subset(
       dataset_id        = dataid,

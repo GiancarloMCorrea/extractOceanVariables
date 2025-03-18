@@ -3,6 +3,8 @@ find_date = function(obs_date, env_date) {
   which(abs(env_date-obs_date) == min(abs(env_date-obs_date)))[1]
 }
 
+# -------------------------------------------------------------------------
+
 # Fill NA values based on the average values within a radius of X km:
 fill_NAvals = function(data, lonlat_cols, group_col, var_col, radius = 10) {
   
@@ -50,3 +52,27 @@ fill_NAvals = function(data, lonlat_cols, group_col, var_col, radius = 10) {
   return(out_df)
   
 }
+
+# -------------------------------------------------------------------------
+# Plot map with environmental variable
+plot_map = function(data, lonlat_cols, group_col, var_col, pointSize = 0.5) {
+  require(sf)
+  require(viridis)
+  xLim = range(envData[,lonlat_cols[1]]) + 0.5*c(-1, 1)
+  yLim = range(envData[,lonlat_cols[2]]) + 0.5*c(-1, 1)
+  MyPoints = data %>% st_as_sf(coords = lonlat_cols, crs = 4326, remove = FALSE)
+  worldmap = ggplot2::map_data("world")
+  colnames(worldmap) = c("X", "Y", "PID", "POS", "region", "subregion")
+  
+  p1 = ggplot() +
+    geom_sf(data = MyPoints, aes(color = .data[[var_col]]), size = pointSize) +
+    viridis::scale_colour_viridis() +
+    geom_polygon(data = worldmap, aes(X, Y, group=PID), fill = "gray60", color=NA) +
+    coord_sf(expand = FALSE, xlim = xLim, ylim = yLim) +
+    xlab(NULL) + ylab(NULL) +
+    theme_classic() +
+    facet_wrap(vars(.data[[group_col]]))
+  return(p1)
+}
+
+
