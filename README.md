@@ -107,6 +107,6 @@ plot_map(data = envData, lonlat_cols = c("Lon_M", "Lat_M"),
 
 ## Recommendations
 
-Carefully explore the oceanographic dataset you want to download. Make sure it covers the spatial and temporal extent of your observations.
+Carefully explore the oceanographic dataset you want to download. Make sure it covers the spatial and temporal extent of your observations. Also, notice that there are different spatial resolutions. Likewise, there are different temporal resolutions (e.g., daily or monthly). Usually, finer temporal resolution will have more missing values for some variables (e.g., chlorophyll).
 
 These codes have not been tested for all possible scenarios. Therefore, you may encounter errors. If you have any questions or suggestions, please let me know.
