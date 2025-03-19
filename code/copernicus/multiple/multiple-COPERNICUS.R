@@ -28,23 +28,23 @@ latLims = c(-19, -3)
 dateLims = c(as.Date("2013-01-01"), as.Date("2013-12-31"))
 
 # -------------------------------------------------------------------------
-# Define source and variable
+# Define dataset id and variable
 dataid = "cmems_mod_glo_phy_my_0.083deg_P1D-m"
 fields = "mlotst"
 
 # -------------------------------------------------------------------------
-# Define name for virtual environment:
+# Define name for Phyton virtual environment:
 entorno = "DownloadCopernicus"
 virtualenv_create(envname = entorno)
 virtualenv_install(envname = entorno, packages = "copernicusmarine")
 use_virtualenv(virtualenv = entorno, required = TRUE)
-atributos_cms = import(module = "copernicusmarine")
-# Provide your username and password if needed
-# atributos_cms$login("gcorrea", "sSCT1208!")
+atributos_cms <- import(module = "copernicusmarine")
+# Introduce your username and password (Copernicus Marine)
+# atributos_cms$login("username", "password")
 
 # -------------------------------------------------------------------------
 # Download environmental information and save it:
-# Of course, you only need to do this once.
+# You only need to do this once.
 download_data = TRUE
 if(download_data) {
   downloadCOPERNICUS(xlim = lonLims, ylim = latLims, 
@@ -57,8 +57,7 @@ if(download_data) {
 
 # -------------------------------------------------------------------------
 # Read data with observations:
-mainDat <- readr::read_csv(file = "data/Surveys13_20LonLat.csv") 
-mainDat = mainDat %>% dplyr::filter(Year == 2013)
+mainDat = readr::read_csv(file = "data/example_data.csv") 
 
 # Define Lan/Lot and Date column names in your dataset:
 lonlat_cols = c("Lon_M", "Lat_M")
@@ -79,16 +78,3 @@ envData = matchCOPERNICUS(data           = mainDat,
 
 # Save new data with environmental information:
 write.csv(envData, file = file.path('data', paste0("data_with_", fields, "_COPERNICUS.csv")), row.names = FALSE)
-
-# -------------------------------------------------------------------------
-# Fill NAs if desired:
-envData_fill = fill_NAvals(data = envData, 
-                           lonlat_cols = lonlat_cols,
-                           group_col = 'Crucero_2',
-                           var_col = 'mlotst_COPERNICUS', 
-                           radius = 5)
-
-# -------------------------------------------------------------------------
-# Make explorative maps:
-plot_map(data = envData_fill, lonlat_cols = c("Lon_M", "Lat_M"), 
-         group_col = 'Crucero_2', var_col = 'mlotst_COPERNICUS')

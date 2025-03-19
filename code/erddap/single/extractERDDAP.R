@@ -1,6 +1,7 @@
 # Download environmental information and match it with observations.
 extractERDDAP <- function(data, lonlat_cols, date_col,
                           envirSource, fields, datasetid,
+                          saveEnvDir,
                           url = "https://upwell.pfeg.noaa.gov/erddap/", 
                           saveEnvFiles = FALSE) {
   

@@ -29,13 +29,13 @@ dateLims = c(as.Date("2013-01-01"), as.Date("2013-12-31"))
 # -------------------------------------------------------------------------
 # Define environmental information from ERDDAP
 envirSource <- "MUR"
-datasetid <- "jplMURSST41mday" # daily: "jplMURSST41", monthly: "jplMURSST41mday"
+datasetid <- "jplMURSST41mday" 
 url <- eurl()
 fields <- "sst"
 
 # -------------------------------------------------------------------------
 # Download environmental information and save it:
-# Of course, you only need to do this once.
+# You only need to do this once.
 download_data = TRUE
 if(download_data) {
 downloadERDDAP(xlim = lonLims, ylim = latLims, 
@@ -49,14 +49,13 @@ downloadERDDAP(xlim = lonLims, ylim = latLims,
 
 # -------------------------------------------------------------------------
 # Read data with observations:
-mainDat <- readr::read_csv(file = "data/Surveys13_20LonLat.csv") 
-mainDat = mainDat %>% dplyr::filter(Year == 2013)
+mainDat = readr::read_csv(file = "data/example_data.csv") 
 
 # Define Lan/Lot and Date column names in your dataset:
 lonlat_cols = c("Lon_M", "Lat_M")
 date_col = "Date"
 
-# Specify path where environmental information is saved and some label for the variable
+# Specify some label for the variable and path where environmental information is saved 
 var_label = 'sst_MUR'
 var_path = file.path(saveEnvDir, var_label)
 
@@ -71,16 +70,3 @@ envData = matchERDDAP(data           = mainDat,
 
 # Save new data with environmental information:
 write.csv(envData, file = file.path('data', paste0("data_with_", var_label, ".csv")), row.names = FALSE)
-
-# -------------------------------------------------------------------------
-# Fill NAs if desired:
-envData_fill = fill_NAvals(data = envData, 
-                           lonlat_cols = lonlat_cols,
-                           group_col = 'Crucero_2',
-                           var_col = 'sst_MUR', 
-                           radius = 5)
-
-# -------------------------------------------------------------------------
-# Make exploration maps:
-plot_map(data = envData_fill, lonlat_cols = c("Lon_M", "Lat_M"), 
-         group_col = 'Crucero_2', var_col = 'sst_MUR')

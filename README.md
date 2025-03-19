@@ -2,7 +2,7 @@
 
 Codes to easily get oceanographic information from [ERDDAP](https://www.ncei.noaa.gov/erddap/index.html), [HYCOM](https://www.hycom.org/), or [COPERNICUS](https://data.marine.copernicus.eu/products) from R. You can also get bathymetric data using the [marmap](https://cran.r-project.org/web/packages/marmap/index.html) R package.
 
-The provided codes (found in the `codes` folder) efficiently download oceanographic data and then find the value corresponding to each observation in your data based on spatial location and time. A new column to your data is added with the values of the desired environmental variable. Minimum handling is required. The R codes there are self-explanatory and have comments to guide you through the process. You only need to focus on the `single-XXXX.R` or `multiple-XXXX.R` scripts (e.g., `code/hycom/single/single-HYCOM.R`), and ignore the rest.
+The provided codes (found in the `codes` folder) efficiently download oceanographic data and then find the value corresponding to each observation in your data based on spatial location and time. A new column to your data is added with the values of the desired environmental variable. Minimum handling is required. The R codes there are self-explanatory and have comments to guide you through the process.
 
 > **Requirements** Your data need to have longitude (numeric, [-180, 180]), latitude (numeric, [-90, 90]), and date (Date class, %Y-%m-%d) columns.
 
@@ -17,11 +17,13 @@ Below, I provide specific instructions for each data source.
 
 ## Get data from ERDDAP
 
-You need to be familiar with the ERDDAP database before downloading data. You can find information about ERDDAP [here](https://www.ncei.noaa.gov/erddap/index.html). In short, you can find different types of oceanographic datasets in ERDDAP. These datasets may be found in different URLs. Each dataset contains information on certain oceanographic variables, which may be global or local (e.g., Gulf of Mexico). Therefore, in order to download oceanographic data from ERDDAP, you need to know the dataset id, the URL where that dataset lives, and the variable name of interest in that dataset.
+You need to be familiar with the [ERDDAP](https://www.ncei.noaa.gov/erddap/index.html) database. You can find different types of oceanographic datasets in ERDDAP, which may be found in different URLs. Each dataset contains information on certain oceanographic variables, which may be global or local (e.g., Gulf of Mexico). Therefore, in order to download oceanographic data from ERDDAP, you need to know the dataset id, the URL where that dataset lives, and the variable name of interest in that dataset.
 
 I recommend you first explore all the URLs available using `rerddap::servers()`. The default URL in most functions in the `rerddap` R package can be found by running `rerddap::eurl()`. Once you have found the URL with the desired dataset, you need to know the dataset id, which can be found using `rerddap::ed_search(query, url)`, where *query* is a keyword (e.g., sst) and *url* is the chosen URL. Remember to correctly specify the URL since some datasets may be available on some sites and not on others.
 
 Once you know the URL and the dataset id, you need to know the variable name of interest in the chosen dataset. You can check this using `rerddap::info(datasetid, url)`.
+
+You only need to focus on the `code/erddap/single/single-ERDDAP.R` or `code/erddap/multiple/multiple-ERDDAP.R` scripts, depending on the approach. You can ignore the rest.
 
 Example 1: if you want to download monthly sea surface temperature data from the [Multi-scale Ultra-high Resolution (MUR)](https://podaac.jpl.nasa.gov/MEaSUREs-MUR) Analyses, you need to specify:
 
@@ -41,7 +43,7 @@ fields = "chlorophyll"
 
 ## Get data from HYCOM
 
-You need to be familiar with the HYCOM database before downloading data. You can find information about HYCOM [here](https://www.hycom.org/). In short, HYCOM is an open-source ocean general circulation modelling system at a global scale. In this case, you only need to know the variable code you want to use. These are the options available:
+You can find information about HYCOM [here](https://www.hycom.org/). HYCOM is an open-source ocean general circulation modelling system at a global scale. In this case, you only need to know the variable code you want to use. These are the options available:
 
 -   `water_temp`: sea surface temperature
 -   `salinity`: salinity
@@ -50,6 +52,8 @@ You need to be familiar with the HYCOM database before downloading data. You can
 -   `water_v`: northward sea water velocity
 
 There is information from October 1992 to August 2024.
+
+You only need to focus on the `code/hycom/single/single-HYCOM.R` or `code/hycom/multiple/multiple-HYCOM.R` scripts, depending on the approach. You can ignore the rest.
 
 ## Get data from COPERNICUS
 
@@ -64,6 +68,8 @@ reticulate::install_python()
 Then, you will also need to create an account on the COPERNICUS website. You can do it [here](https://marine.copernicus.eu/) (click on Register). Remember your username and password!
 
 After completing those two steps successfully, you can start downloading data from COPERNICUS. In the provided code (`code/copernicus`), you will see a step that creates a virtual environment in Phyton.
+
+You only need to focus on the `code/copernicus/single/single-COPERNICUS.R` or `code/copernicus/multiple/multiple-COPERNICUS.R` scripts, depending on the approach. You can ignore the rest.
 
 Example 1: if you want to download daily data on ocean mixed layer thickness, you need to specify:
 
@@ -90,7 +96,7 @@ envData = fill_NAvals(data = envData,
                       radius = 5) # in km
 ```
 
-## Explore the extracted environmental variable
+## Plot the extracted environmental variable
 
 After adding the environmental information to your data (`sst_MUR`), you can explore it by plotting the data. I have prepared a function (`plot_map`, found in `code/auxFunctions.R`) that allows you to plot the environmental information for a specific period (`group_col`):
 
@@ -101,6 +107,6 @@ plot_map(data = envData, lonlat_cols = c("Lon_M", "Lat_M"),
 
 ## Recommendations
 
-Carefully explore the oceanographic dataset you want to download. Make sure it covers the spatial and temporal extent of your observations. 
+Carefully explore the oceanographic dataset you want to download. Make sure it covers the spatial and temporal extent of your observations.
 
 These codes have not been tested for all possible scenarios. Therefore, you may encounter errors. If you have any questions or suggestions, please let me know.
