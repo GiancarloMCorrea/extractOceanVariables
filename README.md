@@ -2,9 +2,9 @@
 
 Codes to easily get oceanographic information from [ERDDAP](https://www.ncei.noaa.gov/erddap/index.html), [HYCOM](https://www.hycom.org/), or [COPERNICUS](https://data.marine.copernicus.eu/products) from R. You can also get bathymetric data using the [marmap](https://cran.r-project.org/web/packages/marmap/index.html) R package.
 
-The provided codes (found in the `codes` folder) efficiently download oceanographic data and then find the value corresponding to each observation in your data based on spatial location and time. A new column to your data is added with the values of the desired environmental variable. Minimum handling is required. The R codes there are self-explanatory and have comments to guide you through the process.
+The provided codes (found in the `codes` folder) efficiently download oceanographic data and then find the value corresponding to each observation in your data based on spatial location and time. A new column to your data is added with the values of the desired environmental variable. Minimum handling is required. The R codes there are self-explanatory and have comments to guide you through the process. You only need to focus on the `single-XXXX.R` or `multiple-XXXX.R` scripts (e.g., `code/hycom/single/single-HYCOM.R`), and ignore the rest.
 
-> **Requirements** Your data need to have longitude (numeric), latitude (numeric), and date (Date class, %Y-%m-%d) columns.
+> **Requirements** Your data need to have longitude (numeric, [-180, 180]), latitude (numeric, [-90, 90]), and date (Date class, %Y-%m-%d) columns.
 
 There are two main ways to do this, and I call them *single* or *multiple-use* approaches.
 
@@ -78,7 +78,7 @@ This section is quite straightforward. The provided code uses the `marmap` R pac
 
 ## Filling missing values
 
-For some datasets and oceanographic variables, missing values (`NA`) could be present. If you want to *fill* in those missing values, I have prepared a function (`fill_NAvals`, found in `codes/auxFunctions.R`) that fills those `NA` with the average value around a specific number of kilometres in a selected period.
+For some datasets and oceanographic variables, missing values (`NA`) could be present. If you want to *fill* in those missing values, I have prepared a function (`fill_NAvals`, found in `code/auxFunctions.R`) that fills those `NA` with the average value around a specific number of kilometres in a selected period.
 
 For example, after extracting the environmental information and adding it to your data (`sst_MUR` column), you notice that you have many missing values. You could fill all or some of them by running:
 
@@ -90,11 +90,17 @@ envData = fill_NAvals(data = envData,
                       radius = 5) # in km
 ```
 
-## Explore the extracted environmental information
+## Explore the extracted environmental variable
 
-After adding the environmental information to your data (`sst_MUR`), you can explore it by plotting the data. I have prepared a function (`plot_map`, found in `codes/auxFunctions.R`) that allows you to plot the environmental information for a specific period (`group_col`):
+After adding the environmental information to your data (`sst_MUR`), you can explore it by plotting the data. I have prepared a function (`plot_map`, found in `code/auxFunctions.R`) that allows you to plot the environmental information for a specific period (`group_col`):
 
 ``` r
 plot_map(data = envData, lonlat_cols = c("Lon_M", "Lat_M"), 
          group_col = 'Year', var_col = 'sst_MUR')
 ```
+
+## Recommendations
+
+Carefully explore the oceanographic dataset you want to download. Make sure it covers the spatial and temporal extent of your observations. 
+
+These codes have not been tested for all possible scenarios. Therefore, you may encounter errors. If you have any questions or suggestions, please let me know.
