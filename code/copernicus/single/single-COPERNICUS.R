@@ -11,7 +11,7 @@ require(lubridate)
 require(reticulate)
 
 # Load auxiliary functions:
-source("code/copernicus/extractCOPERNICUS.R")
+source("code/copernicus/single/extractCOPERNICUS.R")
 source('code/auxFunctions.R')
 
 # -------------------------------------------------------------------------

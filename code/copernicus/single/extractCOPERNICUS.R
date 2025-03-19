@@ -64,7 +64,7 @@ extractCOPERNICUS <- function(data, savePath, dataid, fields,
       
     # Find the closest date position:
     index <- sapply(tempPts$Date, find_date, env_date = as.Date(time(envirData)))
-    max_days_diff = max(as.numeric(tempPts$Date - as.Date(time(envirData))[index]))
+    max_days_diff = max(abs(as.numeric(tempPts$Date - as.Date(time(envirData))[index])))
     
     # Match spatially and temporally
     envirValues <- envirData %>% 

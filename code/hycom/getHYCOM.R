@@ -23,9 +23,9 @@
 #'   service.
 #' @importFrom curl curl_download
 
-downloadHYCOM <- function(limits, time, vars=c('water_temp'), include_latlon=TRUE,
-                           filename='tmp_hycom.nc', download.file=TRUE,
-                           dir = getwd(), depLevels=1, ...) {
+getHYCOM <- function(limits, time, vars=c('water_temp'), include_latlon=TRUE,
+                     filename='tmp_hycom.nc', download.file=TRUE,
+                     dir = getwd(), depLevels=1, ...) {
 
   ## Set the base URL based on the start date. If the ending date exceeds the
   ## period for this experiment, then print a warning and truncate the output

@@ -1,6 +1,6 @@
 # Download environmental information and match it with observations.
 extractHYCOM <- function(data, lonlat_cols, date_col,
-                         savePath, fields, saveEnvFiles = FALSE){
+                         saveEnvDir = getwd(), fields, saveEnvFiles = FALSE){
   
   # Define input data col names used in this function:
   lonlatdate = c("Lon", "Lat", "Date")
@@ -19,7 +19,7 @@ extractHYCOM <- function(data, lonlat_cols, date_col,
   exPts = exPts %>% mutate(month = as.Date(format(x = Date, format = "%Y-%m-01")))
   
   # Create folder to save env information:
-  if(!dir.exists(savePath)) dir.create(path = savePath, showWarnings = FALSE, recursive = TRUE)
+  if(!dir.exists(saveEnvDir)) dir.create(path = saveEnvDir, showWarnings = FALSE, recursive = TRUE)
   
   # Set new column name with env information:
   newNames <- "new_envir"
@@ -67,10 +67,10 @@ extractHYCOM <- function(data, lonlat_cols, date_col,
       if(nrow(tempPts) > 0) {
       
       # Download information from HYCOM:
-      gettingData <- downloadHYCOM(limits = list(xlim[1], xlim[2], ylim[1], ylim[2]), 
-                                    time = datelim[[k]],
-                                    vars = fields,
-                                    dir = savePath)  
+      gettingData <- getHYCOM(limits = list(xlim[1], xlim[2], ylim[1], ylim[2]), 
+                              time = datelim[[k]],
+                              vars = fields,
+                              dir = saveEnvDir)  
       
       # Read downloaded data using terra:
       envirData <- rast(x = gettingData$filename) 
@@ -83,7 +83,7 @@ extractHYCOM <- function(data, lonlat_cols, date_col,
       
       # Find the closest date position:
       index <- sapply(daysPts$Date, find_date, env_date = as.Date(time(envirData)))
-      max_days_diff[k] = max(as.numeric(daysPts$Date - as.Date(time(envirData))[index]))
+      max_days_diff[k] = max(abs(as.numeric(daysPts$Date - as.Date(time(envirData))[index])))
       
       # Matrix with observed locations:
       lonlat_mat = as.matrix(daysPts[,lonlatdate[1:2]])

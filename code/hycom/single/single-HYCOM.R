@@ -11,7 +11,7 @@ require(lubridate)
 
 # Load auxiliary functions:
 source("code/hycom/extractHYCOM.R")
-source('code/hycom/downloadHYCOM.R')
+source('code/hycom/getHYCOM.R')
 source('code/auxFunctions.R')
 
 # -------------------------------------------------------------------------
@@ -45,7 +45,7 @@ fields = 'salinity'
 envData = extractHYCOM(data = mainDat,
                        lonlat_cols = lonlat_cols,
                        date_col = date_col,
-                       savePath = saveEnvDir,
+                       saveEnvDir = saveEnvDir,
                        fields = fields)
 
 # Save new data with environmental information:

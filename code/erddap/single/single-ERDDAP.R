@@ -10,7 +10,7 @@ require(viridis)
 require(lubridate)
 require(rerddap)
 # Load auxiliary functions:
-source("code/erddap/extractERDDAP.R")
+source("code/erddap/single/extractERDDAP.R")
 source('code/auxFunctions.R')
 
 # -------------------------------------------------------------------------
@@ -22,7 +22,6 @@ source('code/auxFunctions.R')
 # ed_search(query='hycom_GLBa008_yx', url = "https://coastwatch.noaa.gov/erddap/")
 
 # -------------------------------------------------------------------------
-
 # Define folder where environmental datasets will be stored:
 saveEnvDir = "C:/Use/GitHub/extractOceanVariables/env_data"
 
@@ -67,6 +66,7 @@ envData = extractERDDAP(data           = mainDat,
                         envirSource    = envirSource, 
                         fields         = fields, 
                         datasetid      = datasetid, 
+                        saveEnvDir     = saveEnvDir,
                         url            = url)
 
 # Save new data with environmental information:

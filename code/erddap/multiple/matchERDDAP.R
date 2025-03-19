@@ -1,8 +1,6 @@
-# Download environmental information and match it with observations.
-extractERDDAP <- function(data, lonlat_cols, date_col,
-                          envirSource, fields, datasetid,
-                          url = "https://upwell.pfeg.noaa.gov/erddap/", 
-                          saveEnvFiles = FALSE) {
+# Match environmental information with observations.
+matchERDDAP <- function(data, lonlat_cols, date_col,
+                        var_label = 'env_var', varPath) {
   
   # Define input data col names used in this function:
   lonlatdate = c("Lon", "Lat", "Date")
@@ -20,15 +18,12 @@ extractERDDAP <- function(data, lonlat_cols, date_col,
   # Add month column:
   exPts = exPts %>% mutate(month = as.Date(format(x = Date, format = "%Y-%m-01")))
   
-  # Create folder to save environmental information:
-  if(!dir.exists(saveEnvDir)) dir.create(path = saveEnvDir, showWarnings = FALSE, recursive = TRUE)
+  # Get unique months
+  monthList <- unique(exPts$month)
   
   # Set new column name with env information:
   newNames <- "new_envir"
-  names(newNames) <- paste(fields, envirSource, sep = "_")
-  
-  # Get unique months
-  monthList <- unique(exPts$month)
+  names(newNames) <- var_label
   
   # List to save results
   output <- list()
@@ -36,27 +31,22 @@ extractERDDAP <- function(data, lonlat_cols, date_col,
   # Loop over unique months
   for(i in seq_along(monthList)){
     
+    # Find start and end day of month:
+    start_day = lubridate::floor_date(monthList[i], "month")
+    end_day = lubridate::ceiling_date(monthList[i], "month") - 1
+    
     # Filter month
     tempPts = exPts %>% filter(month == monthList[i])
     
-    # Lon lat time ranges:
-    xlim = range(tempPts[,lonlatdate[1]]) + 0.5*c(-1, 1)
-    ylim = range(tempPts[,lonlatdate[2]]) + 0.5*c(-1, 1)
-    datelim = seq(from = monthList[i], by = "month", length.out = 2) - c(0, 1)
-    
-    # Download information from ERDDAP:
-    gettingData = griddap(datasetx = datasetid, 
-                           time = format(x = datelim, 
-                                         format = "%Y-%m-%dT12:00:00Z"),
-                           longitude = xlim, 
-                           latitude = ylim, 
-                           fields = fields, 
-                           read = FALSE,
-                           url = url,
-                           store = disk(saveEnvDir))  
+    # Find NC file for that month:
+    nc_file = file.path(varPath, paste0(start_day, "_", end_day, ".nc"))
+
+    if(!file.exists(nc_file)){
+      stop("Netcdf file not found. Did you download environmental data for that date range? Check if the file is in the correct path.")
+    }  
     
     # Read downloaded data using terra:
-    envirData = rast(x = gettingData$summary$filename) 
+    envirData = rast(x = nc_file) 
      
     # Check if flip is needed
     if(is.flipped(envirData)){
@@ -66,7 +56,7 @@ extractERDDAP <- function(data, lonlat_cols, date_col,
     
     # Find the closest date position to match:
     index = sapply(tempPts$Date, find_date, env_date = as.Date(time(envirData)))
-    max_days_diff = max(as.numeric(tempPts$Date - as.Date(time(envirData))[index]))
+    max_days_diff = max(abs(as.numeric(tempPts$Date - as.Date(time(envirData))[index])))
         
     # Match spatially and temporally
     envirValues <- envirData %>% 
@@ -79,20 +69,7 @@ extractERDDAP <- function(data, lonlat_cols, date_col,
                     mutate(new_envir = envirValues) %>% 
                     rename(all_of(newNames)) %>% 
                     select(c(names(newNames), 'id_row'))
-    if(saveEnvFiles) {
-    # Rename the downloaded NC file:
-    file.rename(from = gettingData$summary$filename, 
-                to = paste0(saveEnvDir, '/',
-                            paste(fields, envirSource, 
-                                  format(datelim[1], format = '%Y-%m-%d'),
-                                  format(datelim[2], format = '%Y-%m-%d'),
-                                  sep = '_'),
-                            ".nc")
-                )
-    } else {
-      file.remove(gettingData$summary$filename)
-    }
-                  
+
     cat("Month", as.character(monthList[i]), "ready. Maximum number of days difference:", max_days_diff, "\n")
 
   } # by month loop
