@@ -15,14 +15,12 @@ source('code/bathy/extractBATHY.R')
 
 # -------------------------------------------------------------------------
 # Read data with observations:
-mainDat <- readr::read_csv(file = "data/Surveys13_20LonLat.csv") 
-mainDat = mainDat %>% dplyr::filter(Year == 2018)
+mainDat = readr::read_csv(file = "data/example_data.csv") 
 
 # Define Lan/Lot column names in your dataset:
 lonlat_cols <- c("Lon_M", "Lat_M")
 
 # -------------------------------------------------------------------------
-
 # Get bathymetry information for each observation: 
 envData = extractBATHY(data = mainDat, lonlat_cols = lonlat_cols)
 
