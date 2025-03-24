@@ -2,6 +2,8 @@
 extractERDDAP <- function(data, lonlat_cols, date_col,
                           envirSource, fields, datasetid,
                           saveEnvDir,
+                          depthlim = NULL, # c(-100, 0)
+                          summ_fun = "mean", na_rm = TRUE,
                           url = "https://upwell.pfeg.noaa.gov/erddap/", 
                           saveEnvFiles = FALSE) {
   
@@ -46,6 +48,7 @@ extractERDDAP <- function(data, lonlat_cols, date_col,
     datelim = seq(from = monthList[i], by = "month", length.out = 2) - c(0, 1)
     
     # Download information from ERDDAP:
+    if(is.null(depthlim)) {
     gettingData = griddap(datasetx = datasetid, 
                            time = format(x = datelim, 
                                          format = "%Y-%m-%dT12:00:00Z"),
@@ -54,7 +57,19 @@ extractERDDAP <- function(data, lonlat_cols, date_col,
                            fields = fields, 
                            read = FALSE,
                            url = url,
-                           store = disk(saveEnvDir))  
+                           store = disk(saveEnvDir))
+    } else {
+    gettingData = griddap(datasetx = datasetid, 
+                          time = format(x = datelim, 
+                                        format = "%Y-%m-%dT12:00:00Z"),
+                          longitude = xlim, 
+                          latitude = ylim, 
+                          depth = depthlim,
+                          fields = fields, 
+                          read = FALSE,
+                          url = url,
+                          store = disk(saveEnvDir))
+    }
     
     # Read downloaded data using terra:
     envirData = rast(x = gettingData$summary$filename) 
@@ -65,15 +80,23 @@ extractERDDAP <- function(data, lonlat_cols, date_col,
     }
     plot(envirData)
     
-    # Find the closest date position to match:
-    index = sapply(tempPts$Date, find_date, env_date = as.Date(time(envirData)))
-    max_days_diff = max(abs(as.numeric(tempPts$Date - as.Date(time(envirData))[index])))
-        
+    # Find the closest date position:
+    these_nctimes = sort(unique(as.Date(time(envirData)))) # remove depth effect
+    index <- sapply(tempPts$Date, find_date, env_date = these_nctimes)
+    max_days_diff = max(abs(as.numeric(tempPts$Date - these_nctimes[index])))
+    
+    # Find number of depths:
+    depth_byTime = as.vector(table(time(envirData)))
+    group_vec = rep(1:length(these_nctimes), depth_byTime)
+    
     # Match spatially and temporally
     envirValues <- envirData %>% 
       extract(y = as.matrix(tempPts[,lonlatdate[1:2]])) %>% 
+      t() %>% as.data.frame() %>% mutate(gr = group_vec) %>%
+      group_by(gr) %>% summarise_all(summ_fun, na.rm = na_rm) %>% 
+      select(-gr) %>% t() %>% as.data.frame() %>%
       mutate(index, .before = 1) %>% 
-      apply(1, function(x) x[-1][x[1]])
+      apply(1, function(x) x[-1][x[1]]) %>% as.vector()
     
     # Create new column with env information:
     output[[i]] = tempPts %>% 

@@ -1,6 +1,7 @@
 # Download environmental information
 downloadERDDAP <- function(xlim, ylim, datelim,
                           envirSource, fields, datasetid,
+                          depthlim = NULL, # c(-100, 0)
                           saveEnvDir = getwd(),
                           url = "https://upwell.pfeg.noaa.gov/erddap/") 
 {
@@ -17,15 +18,28 @@ downloadERDDAP <- function(xlim, ylim, datelim,
   
   for(i in seq_along(endDay)) {
     tmp_datelim = c(startDay[i], endDay[i])
-    gettingData = griddap(datasetx = datasetid, 
-                          time = format(x = tmp_datelim, 
-                                        format = "%Y-%m-%dT12:00:00Z"),
-                          longitude = xlim, 
-                          latitude = ylim, 
-                          fields = fields, 
-                          read = FALSE,
-                          url = url,
-                          store = disk(file.path(saveEnvDir, subfolder_name)))
+    if(is.null(depthlim)) {
+      gettingData = griddap(datasetx = datasetid, 
+                            time = format(x = tmp_datelim, 
+                                          format = "%Y-%m-%dT12:00:00Z"),
+                            longitude = xlim, 
+                            latitude = ylim, 
+                            fields = fields, 
+                            read = FALSE,
+                            url = url,
+                            store = disk(saveEnvDir))
+    } else {
+      gettingData = griddap(datasetx = datasetid, 
+                            time = format(x = tmp_datelim, 
+                                          format = "%Y-%m-%dT12:00:00Z"),
+                            longitude = xlim, 
+                            latitude = ylim, 
+                            depth = depthlim,
+                            fields = fields, 
+                            read = FALSE,
+                            url = url,
+                            store = disk(file.path(saveEnvDir, subfolder_name)))
+    }
     
     # Save it:
     file.rename(from = gettingData$summary$filename, 

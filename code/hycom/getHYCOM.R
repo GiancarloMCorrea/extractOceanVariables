@@ -82,7 +82,7 @@ getHYCOM <- function(limits, time, vars=c('water_temp'), include_latlon=TRUE,
     }
   }
   
-  if(any(grep('19', url))) url = sprintf('%s%s?', url, as.numeric(format(time, '%Y')))
+  if(any(grep('19', url))) url = sprintf('%s%s?', url, as.numeric(format(time[1], '%Y')))
   
   ## Add the variables.
   for(var in vars){

@@ -61,7 +61,7 @@ matchCOPERNICUS <- function(data, lonlat_cols, date_col, var_label = 'env_var',
     # Match spatially and temporally
     envirValues <- envirData %>% 
         extract(y = as.matrix(tempPts[,lonlatdate[1:2]])) %>% 
-        t() %>% as.data.frame() %>% add_column(gr = group_vec) %>%
+        t() %>% as.data.frame() %>% mutate(gr = group_vec) %>%
         group_by(gr) %>% summarise_all(summ_fun, na.rm = na_rm) %>% 
         select(-gr) %>% t() %>% as.data.frame() %>%
         mutate(index, .before = 1) %>% 

@@ -1,6 +1,7 @@
 # Match environmental information with observations.
 matchERDDAP <- function(data, lonlat_cols, date_col,
-                        var_label = 'env_var', varPath) {
+                        var_label = 'env_var', varPath,
+                        summ_fun = "mean", na_rm = TRUE) {
   
   # Define input data col names used in this function:
   lonlatdate = c("Lon", "Lat", "Date")
@@ -54,15 +55,23 @@ matchERDDAP <- function(data, lonlat_cols, date_col,
     }
     plot(envirData)
     
-    # Find the closest date position to match:
-    index = sapply(tempPts$Date, find_date, env_date = as.Date(time(envirData)))
-    max_days_diff = max(abs(as.numeric(tempPts$Date - as.Date(time(envirData))[index])))
-        
+    # Find the closest date position:
+    these_nctimes = sort(unique(as.Date(time(envirData)))) # remove depth effect
+    index <- sapply(tempPts$Date, find_date, env_date = these_nctimes)
+    max_days_diff = max(abs(as.numeric(tempPts$Date - these_nctimes[index])))
+    
+    # Find number of depths:
+    depth_byTime = as.vector(table(time(envirData)))
+    group_vec = rep(1:length(these_nctimes), depth_byTime)
+    
     # Match spatially and temporally
     envirValues <- envirData %>% 
       extract(y = as.matrix(tempPts[,lonlatdate[1:2]])) %>% 
+      t() %>% as.data.frame() %>% mutate(gr = group_vec) %>%
+      group_by(gr) %>% summarise_all(summ_fun, na.rm = na_rm) %>% 
+      select(-gr) %>% t() %>% as.data.frame() %>%
       mutate(index, .before = 1) %>% 
-      apply(1, function(x) x[-1][x[1]])
+      apply(1, function(x) x[-1][x[1]]) %>% as.vector()
     
     # Create new column with env information:
     output[[i]] = tempPts %>% 

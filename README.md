@@ -4,14 +4,14 @@ Codes to easily get oceanographic information from [ERDDAP](https://www.ncei.noa
 
 The provided codes (found in the `code` folder) efficiently download oceanographic data and then find the value corresponding to each observation in your data based on spatial location and time. A new column to your data is added with the values of the desired environmental variable. Minimum handling is required. The provided R codes are self-explanatory and have comments to guide you through the process.
 
-> **Requirements** Your data need to have longitude (numeric, [-180, 180]), latitude (numeric, [-90, 90]), and date (Date class, %Y-%m-%d) columns.
+> **Requirements** Your data need to have longitude (numeric), latitude (numeric), and date (Date class, %Y-%m-%d) columns.
 
 There are two main ways to do this, and I call them *single* or *multiple-use* approaches.
 
 -   *Single-use*: For a given month, the oceanographic data is downloaded (netCDF file) based on the spatial extent of your observations during that month, and then matching is performed based on longitude, latitude, and time (year, month, and day). The downloaded oceanographic file can be kept or immediately deleted. This procedure is repeated for every month-year combination in your data. This approach is more efficient when you only want to extract the environmental information and are not interested in keeping the oceanographic data files.
 -   *Multiple-use*: For this approach, you first must define the spatial extent and time range of interest (make sure that all your observations are within these ranges). Then, you need to download the oceanographic data (netCDF file) and store it somewhere on your computer. After having the oceanographic data downloaded, you do the matching with your observations based on longitude, latitude, and time (year, month, and day). This approach is useful when you want to download oceanographic data for a given study area only once, and then use it for different purposes.
 
-> **Limitations** The current version ignores the z dimension (i.e., depth). When multiple depths are detected, the provided functions automatically summarise the values over depths with a specified function (e.g., mean, sum, median). If you need to download data for a specific or multiple depths, you will need to modify the code.
+> **Limitations** The current version aggregates the depth layers. When multiple depths are detected, the provided functions automatically summarise the values over depths with a specified function (e.g., mean, sum, median). Note that this is meaningless for variables with no z-dimension (e.g., mixing layer depth). If you need to assign data for a specific or multiple depths, you will need to modify the code.
 
 Below, I provide specific instructions for each data source.
 
@@ -40,6 +40,8 @@ datasetid = "erdMH1chlamday"
 url = eurl()
 fields = "chlorophyll"
 ```
+
+> **Longitude range** Note that, depending on the data source, the longitude range in the oceanographic dataset may be [-180, 180] or [0, 360]. Make sure that your data also have that range to match.
 
 ## Get data from HYCOM
 
