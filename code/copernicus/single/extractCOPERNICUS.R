@@ -1,5 +1,7 @@
 # Download environmental information and match it with observations.
 extractCOPERNICUS <- function(data, savePath, dataid, fields,
+                              depthlim = c(0, 100),
+                              summ_fun = "mean", na_rm = TRUE,
                               saveEnvFiles = FALSE){
 
   # Define input data col names used in this function:
@@ -53,8 +55,8 @@ extractCOPERNICUS <- function(data, savePath, dataid, fields,
       maximum_latitude  = ylim[2],
       start_datetime    = format(x = datelim[1], format = "%Y-%m-%dT00:00:00"),
       end_datetime      = format(x = datelim[2], format = "%Y-%m-%dT00:00:00"),
-      minimum_depth     = 0,
-      maximum_depth     = 0.5,
+      minimum_depth     = depthlim[1],
+      maximum_depth     = depthlim[2],
       output_filename   = NCtmpname
     ) 
       
@@ -63,15 +65,23 @@ extractCOPERNICUS <- function(data, savePath, dataid, fields,
     plot(envirData)
       
     # Find the closest date position:
-    index <- sapply(tempPts$Date, find_date, env_date = as.Date(time(envirData)))
-    max_days_diff = max(abs(as.numeric(tempPts$Date - as.Date(time(envirData))[index])))
+    these_nctimes = sort(unique(as.Date(time(envirData)))) # remove depth effect
+    index <- sapply(tempPts$Date, find_date, env_date = these_nctimes)
+    max_days_diff = max(abs(as.numeric(tempPts$Date - these_nctimes[index])))
+
+    # Find number of depths:
+    depth_byTime = as.vector(table(time(envirData)))
+    group_vec = rep(1:length(these_nctimes), depth_byTime)
     
     # Match spatially and temporally
     envirValues <- envirData %>% 
-        extract(y = as.matrix(tempPts[,lonlatdate[1:2]])) %>% 
-        mutate(index, .before = 1) %>% 
-        apply(1, function(x) x[-1][x[1]])
-      
+      extract(y = as.matrix(tempPts[,lonlatdate[1:2]])) %>% 
+      t() %>% as.data.frame() %>% add_column(gr = group_vec) %>%
+      group_by(gr) %>% summarise_all(summ_fun, na.rm = na_rm) %>% 
+      select(-gr) %>% t() %>% as.data.frame() %>%
+      mutate(index, .before = 1) %>% 
+      apply(1, function(x) x[-1][x[1]]) %>% as.vector()
+    
     # Create new column with env information:
     output[[i]] <- tempPts %>% 
         mutate(new_envir = envirValues) %>% 

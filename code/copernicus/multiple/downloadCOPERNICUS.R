@@ -1,5 +1,6 @@
 # Download environmental information and match it with observations.
 downloadCOPERNICUS <- function(xlim, ylim, datelim, 
+                               depthlim = c(0, 100),
                                dataid, fields,
                                saveEnvDir = getwd()){
 
@@ -31,8 +32,8 @@ downloadCOPERNICUS <- function(xlim, ylim, datelim,
       maximum_latitude  = ylim[2],
       start_datetime    = format(x = tmp_datelim[1], format = "%Y-%m-%dT00:00:00"),
       end_datetime      = format(x = tmp_datelim[2], format = "%Y-%m-%dT00:00:00"),
-      minimum_depth     = 0,
-      maximum_depth     = 1,
+      minimum_depth     = depthlim[1],
+      maximum_depth     = depthlim[2],
       output_filename   = NCtmpname
     ) 
 
