@@ -10,8 +10,7 @@ downloadHYCOM <- function(xlim, ylim, datelim, fields,
   startDay = startDay[1:(length(startDay) - 1)]
   
   # Create subfolder to save NC files:
-  subfolder_name = paste(fields, 'HYCOM', sep = "_")
-  dir.create(file.path(saveEnvDir, subfolder_name), showWarnings = FALSE)
+  if(!dir.exists(saveEnvDir)) dir.create(saveEnvDir, showWarnings = FALSE, recursive = TRUE)
   
   # Loop over months:
   for(i in seq_along(endDay)) {
@@ -44,11 +43,11 @@ downloadHYCOM <- function(xlim, ylim, datelim, fields,
       gettingData <- getHYCOM(limits = list(xlim[1], xlim[2], ylim[1], ylim[2]), 
                               time = tmp_datelim[[k]],
                               vars = fields,
-                              dir = file.path(saveEnvDir, subfolder_name))  
+                              dir = saveEnvDir)  
 
       # Rename the downloaded NC file:
       file.rename(from = gettingData$filename, 
-                  to = paste0(file.path(saveEnvDir, subfolder_name), '/',
+                  to = paste0(saveEnvDir, '/',
                               paste(format(tmp_datelim[[k]][1], format = '%Y-%m-%d'),
                                     format(tmp_datelim[[k]][2], format = '%Y-%m-%d'),
                                     sep = '_'),

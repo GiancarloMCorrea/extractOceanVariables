@@ -1,6 +1,8 @@
 # Download environmental information and match it with observations.
-matchCOPERNICUS <- function(data, lonlat_cols, date_col, var_label = 'env_var',
-                            varPath, summ_fun = "mean", na_rm = TRUE){
+matchCOPERNICUS <- function(data, lonlat_cols, date_col, 
+                            var_label = 'env_var', varPath, 
+                            summ_fun = "mean", na_rm = TRUE,
+							show_plot = FALSE){
 
   # Define input data col names used in this function:
   lonlatdate = c("Lon", "Lat", "Date")
@@ -47,7 +49,7 @@ matchCOPERNICUS <- function(data, lonlat_cols, date_col, var_label = 'env_var',
     
     # Read file:
     envirData <- rast(x = nc_file) 
-    plot(envirData)
+    if(show_plot) plot(envirData)
       
     # Find the closest date position:
     these_nctimes = sort(unique(as.Date(time(envirData)))) # remove depth effect
@@ -60,7 +62,7 @@ matchCOPERNICUS <- function(data, lonlat_cols, date_col, var_label = 'env_var',
     
     # Match spatially and temporally
     envirValues <- envirData %>% 
-        extract(y = as.matrix(tempPts[,lonlatdate[1:2]])) %>% 
+        terra::extract(y = as.matrix(tempPts[,lonlatdate[1:2]])) %>% 
         t() %>% as.data.frame() %>% mutate(gr = group_vec) %>%
         group_by(gr) %>% summarise_all(summ_fun, na.rm = na_rm) %>% 
         select(-gr) %>% t() %>% as.data.frame() %>%

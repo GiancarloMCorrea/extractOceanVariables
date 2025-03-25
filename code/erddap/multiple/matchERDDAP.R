@@ -1,7 +1,8 @@
 # Match environmental information with observations.
 matchERDDAP <- function(data, lonlat_cols, date_col,
                         var_label = 'env_var', varPath,
-                        summ_fun = "mean", na_rm = TRUE) {
+                        summ_fun = "mean", na_rm = TRUE,
+						show_plot = FALSE) {
   
   # Define input data col names used in this function:
   lonlatdate = c("Lon", "Lat", "Date")
@@ -53,7 +54,7 @@ matchERDDAP <- function(data, lonlat_cols, date_col,
     if(is.flipped(envirData)){
       envirData = flip(x = envirData)
     }
-    plot(envirData)
+    if(show_plot) plot(envirData)
     
     # Find the closest date position:
     these_nctimes = sort(unique(as.Date(time(envirData)))) # remove depth effect
@@ -66,7 +67,7 @@ matchERDDAP <- function(data, lonlat_cols, date_col,
     
     # Match spatially and temporally
     envirValues <- envirData %>% 
-      extract(y = as.matrix(tempPts[,lonlatdate[1:2]])) %>% 
+      terra::extract(y = as.matrix(tempPts[,lonlatdate[1:2]])) %>% 
       t() %>% as.data.frame() %>% mutate(gr = group_vec) %>%
       group_by(gr) %>% summarise_all(summ_fun, na.rm = na_rm) %>% 
       select(-gr) %>% t() %>% as.data.frame() %>%

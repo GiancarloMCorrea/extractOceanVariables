@@ -12,8 +12,7 @@ downloadCOPERNICUS <- function(xlim, ylim, datelim,
   startDay = startDay[1:(length(startDay) - 1)]
   
   # Create subfolder to save NC files:
-  subfolder_name = paste(fields, 'COPERNICUS', sep = "_")
-  dir.create(file.path(saveEnvDir, subfolder_name), showWarnings = FALSE)
+  if(!dir.exists(saveEnvDir)) dir.create(saveEnvDir, showWarnings = FALSE, recursive = TRUE)
   
   # Loop over unique months
   for(i in seq_along(endDay)){
@@ -22,7 +21,7 @@ downloadCOPERNICUS <- function(xlim, ylim, datelim,
     tmp_datelim = c(startDay[i], endDay[i])
     
     # Download information from COPERNICUS::
-    NCtmpname = file.path(file.path(saveEnvDir, subfolder_name), "tmp_copernicus.nc")
+    NCtmpname = file.path(saveEnvDir, "tmp_copernicus.nc")
     atributos_cms$subset(
       dataset_id        = dataid,
       variables         = list(fields),
@@ -39,7 +38,7 @@ downloadCOPERNICUS <- function(xlim, ylim, datelim,
 
     # Rename the downloaded NC file:
     file.rename(from = NCtmpname, 
-                to = paste0(file.path(saveEnvDir, subfolder_name), '/',
+                to = paste0(saveEnvDir, '/',
                             paste(format(tmp_datelim[1], format = '%Y-%m-%d'),
                                   format(tmp_datelim[2], format = '%Y-%m-%d'),
                                   sep = '_'),

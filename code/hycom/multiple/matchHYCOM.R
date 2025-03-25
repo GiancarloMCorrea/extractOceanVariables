@@ -1,6 +1,7 @@
 # Download environmental information and match it with observations.
 matchHYCOM <- function(data, lonlat_cols, date_col,
-                       var_label = 'env_var', varPath){
+                       var_label = 'env_var', varPath,
+					   show_plot = FALSE){
   
   # Define input data col names used in this function:
   lonlatdate = c("Lon", "Lat", "Date")
@@ -80,7 +81,7 @@ matchHYCOM <- function(data, lonlat_cols, date_col,
       if(is.flipped(envirData)){
         envirData <- flip(x = envirData, direction = "vertical")
       }
-      plot(envirData)
+      if(show_plot) plot(envirData)
       
       # Find the closest date position:
       index <- sapply(daysPts$Date, find_date, env_date = as.Date(time(envirData)))
@@ -96,7 +97,7 @@ matchHYCOM <- function(data, lonlat_cols, date_col,
       
       # Match spatially and temporally
       envirValues <- envirData %>% 
-        extract(y = lonlat_mat) %>% 
+        terra::extract(y = lonlat_mat) %>% 
         mutate(index, .before = 1) %>% 
         apply(1, function(x) x[-1][x[1]])
       

@@ -1,8 +1,9 @@
 # Download environmental information and match it with observations.
-extractCOPERNICUS <- function(data, savePath, dataid, fields,
+extractCOPERNICUS <- function(data, saveEnvDir, dataid, fields,
                               depthlim = c(0, 100),
                               summ_fun = "mean", na_rm = TRUE,
-                              saveEnvFiles = FALSE){
+                              saveEnvFiles = FALSE,
+							  show_plot = FALSE){
 
   # Define input data col names used in this function:
   lonlatdate = c("Lon", "Lat", "Date")
@@ -21,11 +22,11 @@ extractCOPERNICUS <- function(data, savePath, dataid, fields,
   exPts = exPts %>% mutate(month = as.Date(format(x = Date, format = "%Y-%m-01")))
   
   # Create folder to save env information:
-  if(!dir.exists(savePath)) dir.create(path = savePath, showWarnings = FALSE, recursive = TRUE)
+  if(!dir.exists(saveEnvDir)) dir.create(path = saveEnvDir, showWarnings = FALSE, recursive = TRUE)
   
   # Set new column name with env information:
   newNames <- "new_envir"
-  names(newNames) <- paste(fields, "HYCOM", sep = "_")
+  names(newNames) <- fields
   
   # List to save results
   monthList <- unique(exPts$month)
@@ -45,7 +46,7 @@ extractCOPERNICUS <- function(data, savePath, dataid, fields,
     datelim = seq(from = monthList[i], by = "month", length.out = 2) - c(0, 1)
     
     # Download information from COPERNICUS::
-    NCtmpname = file.path(savePath, "tmp_copernicus.nc")
+    NCtmpname = file.path(saveEnvDir, "tmp_copernicus.nc")
     atributos_cms$subset(
       dataset_id        = dataid,
       variables         = list(fields),
@@ -61,8 +62,8 @@ extractCOPERNICUS <- function(data, savePath, dataid, fields,
     ) 
       
     # Read file:
-    envirData <- rast(x = file.path(savePath, "tmp_copernicus.nc")) 
-    plot(envirData)
+    envirData <- rast(x = file.path(saveEnvDir, "tmp_copernicus.nc")) 
+    if(show_plot) plot(envirData)
       
     # Find the closest date position:
     these_nctimes = sort(unique(as.Date(time(envirData)))) # remove depth effect
@@ -75,7 +76,7 @@ extractCOPERNICUS <- function(data, savePath, dataid, fields,
     
     # Match spatially and temporally
     envirValues <- envirData %>% 
-      extract(y = as.matrix(tempPts[,lonlatdate[1:2]])) %>% 
+      terra::extract(y = as.matrix(tempPts[,lonlatdate[1:2]])) %>% 
       t() %>% as.data.frame() %>% mutate(gr = group_vec) %>%
       group_by(gr) %>% summarise_all(summ_fun, na.rm = na_rm) %>% 
       select(-gr) %>% t() %>% as.data.frame() %>%
@@ -92,7 +93,7 @@ extractCOPERNICUS <- function(data, savePath, dataid, fields,
       # Rename the downloaded NC file:
       file.rename(from = NCtmpname, 
                 to = paste0(saveEnvDir, '/',
-                                paste(fields, 'COPERNICUS', 
+                                paste(fields, 
                                       format(datelim[1], format = '%Y-%m-%d'),
                                       format(datelim[2], format = '%Y-%m-%d'),
                                       sep = '_'),

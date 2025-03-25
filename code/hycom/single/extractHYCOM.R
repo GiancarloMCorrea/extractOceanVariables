@@ -1,6 +1,7 @@
 # Download environmental information and match it with observations.
 extractHYCOM <- function(data, lonlat_cols, date_col,
-                         saveEnvDir = getwd(), fields, saveEnvFiles = FALSE){
+                         saveEnvDir = getwd(), fields, saveEnvFiles = FALSE,
+						 show_plot = FALSE){
   
   # Define input data col names used in this function:
   lonlatdate = c("Lon", "Lat", "Date")
@@ -23,7 +24,7 @@ extractHYCOM <- function(data, lonlat_cols, date_col,
   
   # Set new column name with env information:
   newNames <- "new_envir"
-  names(newNames) <- paste(fields, "HYCOM", sep = "_")
+  names(newNames) <- fields
   
   # Get unique months
   monthList <- unique(exPts$month)
@@ -79,7 +80,7 @@ extractHYCOM <- function(data, lonlat_cols, date_col,
       if(is.flipped(envirData)){
         envirData <- flip(x = envirData, direction = "vertical")
       }
-      plot(envirData)
+      if(show_plot) plot(envirData)
       
       # Find the closest date position:
       index <- sapply(daysPts$Date, find_date, env_date = as.Date(time(envirData)))
@@ -95,7 +96,7 @@ extractHYCOM <- function(data, lonlat_cols, date_col,
       
       # Match spatially and temporally
       envirValues <- envirData %>% 
-        extract(y = lonlat_mat) %>% 
+        terra::extract(y = lonlat_mat) %>% 
         mutate(index, .before = 1) %>% 
         apply(1, function(x) x[-1][x[1]])
       
@@ -110,7 +111,7 @@ extractHYCOM <- function(data, lonlat_cols, date_col,
         # Rename the downloaded NC file:
         file.rename(from = gettingData$filename, 
                     to = paste0(saveEnvDir, '/',
-                                paste(fields, 'HYCOM', 
+                                paste(fields, 
                                       format(datelim[[k]][1], format = '%Y-%m-%d'),
                                       format(datelim[[k]][2], format = '%Y-%m-%d'),
                                       sep = '_'),

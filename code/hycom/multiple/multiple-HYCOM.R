@@ -16,11 +16,6 @@ source('code/hycom/getHYCOM.R')
 source('code/auxFunctions.R')
 
 # -------------------------------------------------------------------------
-# Define folder where environmental datasets will be stored:
-# A subfolder will be created in this folder with the variable name
-saveEnvDir <- "C:/Use/GitHub/extractOceanVariables/env_data"
-
-# -------------------------------------------------------------------------
 # Define longitude and latitude limits:
 # Make your that your observations are within these limits
 lonLims = c(-83, -69)
@@ -30,6 +25,10 @@ dateLims = c(as.Date("2013-01-01"), as.Date("2013-12-31"))
 # -------------------------------------------------------------------------
 # Variable name:
 fields = 'salinity'
+
+# -------------------------------------------------------------------------
+# Define folder where environmental datasets will be stored:
+saveEnvDir = file.path("C:/Use/GitHub/extractOceanVariables/env_data", fields)
 
 # -------------------------------------------------------------------------
 # Download environmental information and save it:
@@ -50,18 +49,14 @@ mainDat = readr::read_csv(file = "data/example_data.csv")
 lonlat_cols = c("Lon_M", "Lat_M")
 date_col = "Date"
 
-# Specify path where environmental information is saved and some label for the variable
-var_label = 'salinity_HYCOM'
-var_path = file.path(saveEnvDir, var_label)
-
 # -------------------------------------------------------------------------
 # Match environmental information with observations:
 # A column with the environmental variable will be added
 envData = matchHYCOM(data           = mainDat, 
                      lonlat_cols    = lonlat_cols,
                      date_col       = date_col,
-                     var_label      = var_label, 
-                     varPath        = var_path)
+                     var_label      = fields, 
+                     varPath        = saveEnvDir)
 
 # Save new data with environmental information:
 write.csv(envData, file = file.path('data', paste0("data_with_", fields, "_HYCOM.csv")), row.names = FALSE)

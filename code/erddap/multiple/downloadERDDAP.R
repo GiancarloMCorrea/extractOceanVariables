@@ -1,6 +1,6 @@
 # Download environmental information
 downloadERDDAP <- function(xlim, ylim, datelim,
-                          envirSource, fields, datasetid,
+                          fields, datasetid,
                           depthlim = NULL, # c(-100, 0)
                           saveEnvDir = getwd(),
                           url = "https://upwell.pfeg.noaa.gov/erddap/") 
@@ -13,8 +13,7 @@ downloadERDDAP <- function(xlim, ylim, datelim,
   startDay = startDay[1:(length(startDay) - 1)]
   
   # Create subfolder to save NC files:
-  subfolder_name = paste(fields, envirSource, sep = "_")
-  dir.create(file.path(saveEnvDir, subfolder_name), showWarnings = FALSE)
+  if(!dir.exists(saveEnvDir)) dir.create(saveEnvDir, showWarnings = FALSE, recursive = TRUE)
   
   for(i in seq_along(endDay)) {
     tmp_datelim = c(startDay[i], endDay[i])
@@ -38,12 +37,12 @@ downloadERDDAP <- function(xlim, ylim, datelim,
                             fields = fields, 
                             read = FALSE,
                             url = url,
-                            store = disk(file.path(saveEnvDir, subfolder_name)))
+                            store = disk(saveEnvDir))
     }
     
     # Save it:
     file.rename(from = gettingData$summary$filename, 
-                to = paste0(file.path(saveEnvDir, subfolder_name), '/',
+                to = paste0(saveEnvDir, '/',
                             paste(format(tmp_datelim[1], format = '%Y-%m-%d'),
                                   format(tmp_datelim[2], format = '%Y-%m-%d'),
                                   sep = '_'),

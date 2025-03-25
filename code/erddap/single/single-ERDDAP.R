@@ -30,11 +30,10 @@ date_col = "Date"
 # Define ERDDAP source and variable name
 
 # MUR analysis (0.01 deg resolution):
-envirSource <- "MUR"
 datasetid <- "jplMURSST41mday"
 url <- eurl()
 info(datasetid = datasetid, url = url) # check 'field'
-fields <- "sst"
+fields <- "sst" # should be in NC files
 
 # -------------------------------------------------------------------------
 # Download environmental information and matching with observations:
@@ -42,7 +41,6 @@ fields <- "sst"
 envData = extractERDDAP(data           = mainDat, 
                         lonlat_cols    = lonlat_cols,
                         date_col       = date_col,
-                        envirSource    = envirSource, 
                         fields         = fields, 
                         datasetid      = datasetid, 
                         saveEnvDir     = saveEnvDir,
@@ -56,11 +54,11 @@ write.csv(envData, file = file.path('data', paste0("data_with_", fields, "_", en
 envData = fill_NAvals(data = envData, 
                       lonlat_cols = lonlat_cols,
                       group_col = 'Year',
-                      var_col = 'sst_MUR', 
+                      var_col = 'sst', 
                       radius = 5)
 
 # -------------------------------------------------------------------------
 # Make explorative maps:
 envData = envData %>% mutate(Year = format(Date, '%Y'))
 plot_map(data = envData, lonlat_cols = c("Lon_M", "Lat_M"), 
-         group_col = 'Year', var_col = 'sst_MUR')
+         group_col = 'Year', var_col = 'sst')

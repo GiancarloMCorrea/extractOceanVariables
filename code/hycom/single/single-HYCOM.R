@@ -34,11 +34,11 @@ fields = 'salinity'
 # -------------------------------------------------------------------------
 # Download environmental information and matching with observations:
 # A column with the environmental variable will be added
-envData = extractHYCOM(data = mainDat,
+envData = extractHYCOM(data        = mainDat,
                        lonlat_cols = lonlat_cols,
-                       date_col = date_col,
-                       saveEnvDir = saveEnvDir,
-                       fields = fields)
+                       date_col    = date_col,
+                       saveEnvDir  = saveEnvDir,
+                       fields      = fields)
 
 # Save new data with environmental information:
 write.csv(envData, file = file.path('data', paste0("data_with_", fields, "_HYCOM.csv")), row.names = FALSE)

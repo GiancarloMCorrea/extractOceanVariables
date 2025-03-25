@@ -44,10 +44,10 @@ fields = "mlotst"
 # -------------------------------------------------------------------------
 # Download environmental information and matching with observations:
 # A column with the environmental variable will be added
-envData = extractCOPERNICUS(data = mainDat,
-                            savePath = saveEnvDir,
-                            dataid = dataid,
-                            fields = fields)
+envData = extractCOPERNICUS(data       = mainDat,
+                            saveEnvDir = saveEnvDir,
+                            dataid     = dataid,
+                            fields     = fields)
 
 # Save new data with environmental information:
 write.csv(envData, file = file.path('data', paste0("data_with_", fields, "_COPERNICUS.csv")), row.names = FALSE)

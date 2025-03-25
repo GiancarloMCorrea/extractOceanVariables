@@ -1,11 +1,12 @@
 # Download environmental information and match it with observations.
 extractERDDAP <- function(data, lonlat_cols, date_col,
-                          envirSource, fields, datasetid,
-                          saveEnvDir,
+                          fields, datasetid,
+                          saveEnvDir = getwd(),
                           depthlim = NULL, # c(-100, 0)
                           summ_fun = "mean", na_rm = TRUE,
                           url = "https://upwell.pfeg.noaa.gov/erddap/", 
-                          saveEnvFiles = FALSE) {
+                          saveEnvFiles = FALSE,
+						  show_plot = FALSE) {
   
   # Define input data col names used in this function:
   lonlatdate = c("Lon", "Lat", "Date")
@@ -28,7 +29,7 @@ extractERDDAP <- function(data, lonlat_cols, date_col,
   
   # Set new column name with env information:
   newNames <- "new_envir"
-  names(newNames) <- paste(fields, envirSource, sep = "_")
+  names(newNames) <- fields
   
   # Get unique months
   monthList <- unique(exPts$month)
@@ -78,7 +79,7 @@ extractERDDAP <- function(data, lonlat_cols, date_col,
     if(is.flipped(envirData)){
       envirData = flip(x = envirData)
     }
-    plot(envirData)
+    if(show_plot) plot(envirData)
     
     # Find the closest date position:
     these_nctimes = sort(unique(as.Date(time(envirData)))) # remove depth effect
@@ -91,7 +92,7 @@ extractERDDAP <- function(data, lonlat_cols, date_col,
     
     # Match spatially and temporally
     envirValues <- envirData %>% 
-      extract(y = as.matrix(tempPts[,lonlatdate[1:2]])) %>% 
+      terra::extract(y = as.matrix(tempPts[,lonlatdate[1:2]])) %>% 
       t() %>% as.data.frame() %>% mutate(gr = group_vec) %>%
       group_by(gr) %>% summarise_all(summ_fun, na.rm = na_rm) %>% 
       select(-gr) %>% t() %>% as.data.frame() %>%
@@ -107,7 +108,7 @@ extractERDDAP <- function(data, lonlat_cols, date_col,
     # Rename the downloaded NC file:
     file.rename(from = gettingData$summary$filename, 
                 to = paste0(saveEnvDir, '/',
-                            paste(fields, envirSource, 
+                            paste(fields, 
                                   format(datelim[1], format = '%Y-%m-%d'),
                                   format(datelim[2], format = '%Y-%m-%d'),
                                   sep = '_'),
