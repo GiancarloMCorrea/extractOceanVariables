@@ -64,8 +64,8 @@ fill_NAvals = function(data, lonlat_cols, group_col, var_col, radius = 10) {
 plot_map = function(data, lonlat_cols, group_col, var_col, pointSize = 0.5) {
   require(sf)
   require(viridis)
-  xLim = range(envData[,lonlat_cols[1]]) + 0.5*c(-1, 1)
-  yLim = range(envData[,lonlat_cols[2]]) + 0.5*c(-1, 1)
+  xLim = range(data[,lonlat_cols[1]]) + 0.5*c(-1, 1)
+  yLim = range(data[,lonlat_cols[2]]) + 0.5*c(-1, 1)
   MyPoints = data %>% st_as_sf(coords = lonlat_cols, crs = 4326, remove = FALSE)
   worldmap = ggplot2::map_data("world")
   colnames(worldmap) = c("X", "Y", "PID", "POS", "region", "subregion")
