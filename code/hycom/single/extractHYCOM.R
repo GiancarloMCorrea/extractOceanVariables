@@ -10,7 +10,7 @@ extractHYCOM <- function(data, lonlat_cols, date_col,
   data = data %>% mutate(id_row = 1:n())
   
   # Preprocess the data:
-  exPts <- data %>% select(all_of(c(lonlat_cols, date_col, 'id_row'))) %>% 
+  exPts <- data %>% dplyr::select(all_of(c(lonlat_cols, date_col, 'id_row'))) %>% 
                     dplyr::rename(Lon = lonlat_cols[1],
                                   Lat = lonlat_cols[2],
                                   Date = date_col)
@@ -104,7 +104,7 @@ extractHYCOM <- function(data, lonlat_cols, date_col,
       output[[listCount]] <- daysPts %>% 
         mutate(new_envir = envirValues) %>% 
         rename(all_of(newNames)) %>% 
-        select(c(names(newNames), 'id_row'))
+        dplyr::select(c(names(newNames), 'id_row'))
       listCount = listCount + 1
       
       if(saveEnvFiles) {
@@ -136,7 +136,7 @@ extractHYCOM <- function(data, lonlat_cols, date_col,
     stop('Unexpected error detected when matching. Check step by step carefully.')
   }
   
-  output_df = output_df %>% select(-id_row)
+  output_df = output_df %>% dplyr::select(-id_row)
   n_nas = sum(is.na(pull(output_df, names(newNames))))
   perc_nas = round(n_nas/nrow(output_df)*100, 1)
   

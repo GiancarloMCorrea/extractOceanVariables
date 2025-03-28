@@ -12,7 +12,7 @@ extractCOPERNICUS <- function(data, saveEnvDir, dataid, fields,
   data = data %>% mutate(id_row = 1:n())
   
   # Preprocess the data:
-  exPts <- data %>% select(all_of(c(lonlat_cols, date_col, 'id_row'))) %>% 
+  exPts <- data %>% dplyr::select(all_of(c(lonlat_cols, date_col, 'id_row'))) %>% 
                     dplyr::rename(Lon = lonlat_cols[1],
                                   Lat = lonlat_cols[2],
                                   Date = date_col)
@@ -79,7 +79,7 @@ extractCOPERNICUS <- function(data, saveEnvDir, dataid, fields,
       terra::extract(y = as.matrix(tempPts[,lonlatdate[1:2]])) %>% 
       t() %>% as.data.frame() %>% mutate(gr = group_vec) %>%
       group_by(gr) %>% summarise_all(summ_fun, na.rm = na_rm) %>% 
-      select(-gr) %>% t() %>% as.data.frame() %>%
+      dplyr::select(-gr) %>% t() %>% as.data.frame() %>%
       mutate(index, .before = 1) %>% 
       apply(1, function(x) x[-1][x[1]]) %>% as.vector()
     
@@ -87,7 +87,7 @@ extractCOPERNICUS <- function(data, saveEnvDir, dataid, fields,
     output[[i]] <- tempPts %>% 
         mutate(new_envir = envirValues) %>% 
         rename(all_of(newNames))  %>% 
-        select(c(names(newNames), 'id_row'))
+        dplyr::select(c(names(newNames), 'id_row'))
       
     if(saveEnvFiles) {
       # Rename the downloaded NC file:
@@ -115,7 +115,7 @@ extractCOPERNICUS <- function(data, saveEnvDir, dataid, fields,
     stop('Unexpected error detected when matching. Check step by step carefully.')
   }
   
-  output_df = output_df %>% select(-id_row)
+  output_df = output_df %>% dplyr::select(-id_row)
   n_nas = sum(is.na(pull(output_df, names(newNames))))
   perc_nas = round(n_nas/nrow(output_df)*100, 1)
   

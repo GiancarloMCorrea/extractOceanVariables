@@ -70,7 +70,7 @@ matchERDDAP <- function(data, lonlat_cols, date_col,
       terra::extract(y = as.matrix(tempPts[,lonlatdate[1:2]])) %>% 
       t() %>% as.data.frame() %>% mutate(gr = group_vec) %>%
       group_by(gr) %>% summarise_all(summ_fun, na.rm = na_rm) %>% 
-      select(-gr) %>% t() %>% as.data.frame() %>%
+      dplyr::select(-gr) %>% t() %>% as.data.frame() %>%
       mutate(index, .before = 1) %>% 
       apply(1, function(x) x[-1][x[1]]) %>% as.vector()
     
@@ -78,7 +78,7 @@ matchERDDAP <- function(data, lonlat_cols, date_col,
     output[[i]] = tempPts %>% 
                     mutate(new_envir = envirValues) %>% 
                     rename(all_of(newNames)) %>% 
-                    select(c(names(newNames), 'id_row'))
+                    dplyr::select(c(names(newNames), 'id_row'))
 
     cat("Month", as.character(monthList[i]), "ready. Maximum number of days difference:", max_days_diff, "\n")
 
