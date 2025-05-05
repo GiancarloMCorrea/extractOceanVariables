@@ -1,24 +1,24 @@
 # Download environmental information and match it with observations.
 matchCOPERNICUS <- function(data, lonlat_cols, date_col, 
                             var_label = 'env_var', varPath, 
-                            summ_fun = "mean", na_rm = TRUE,
-							show_plot = FALSE){
+                            depth_range = NULL,
+                            depth_FUN = "mean",
+                            #time_lag = 0,
+                            #time_FUN = "mean",
+                            na_rm = TRUE,
+							              show_plot = FALSE,
+							              nc_dimnames = c("longitude", "latitude", "time")){
 
-  # Define input data col names used in this function:
-  lonlatdate = c("Lon", "Lat", "Date")
-  
   # Create id rows to do match later:
   data = data %>% mutate(id_row = 1:n())
   
   # Preprocess the data:
-  exPts <- data %>% dplyr::select(dplyr::all_of(c(lonlat_cols, date_col, 'id_row'))) %>% 
-    dplyr::rename(Lon = lonlat_cols[1],
-                  Lat = lonlat_cols[2],
-                  Date = date_col)
-  exPts$Date = as.Date(exPts$Date)
+  exPts = data[,c(lonlat_cols, date_col, 'id_row')]
+  colnames(exPts)[1:3] = nc_dimnames
+  exPts[,nc_dimnames[3]] = as.POSIXct(exPts %>% pull(nc_dimnames[3]), tz = "UTC")
   
   # Add month column:
-  exPts = exPts %>% mutate(month = as.Date(format(x = Date, format = "%Y-%m-01")))
+  exPts$month = as.Date(format(exPts %>% pull(nc_dimnames[3]), format = "%Y-%m-01"))
   
   # Get unique months
   monthList <- unique(exPts$month)
@@ -48,27 +48,62 @@ matchCOPERNICUS <- function(data, lonlat_cols, date_col,
     }  
     
     # Read file:
-    envirData <- rast(x = nc_file) 
+    envirData <- stars::read_ncdf(nc_file) 
     if(show_plot) plot(envirData)
-      
+    
+    if(i == 1) {
+      # Print dimension names and values:
+      dim_names = dimnames(envirData)
+      cat("Dimensions are:", paste(dim_names, collapse = ', '), "\n")
+    }
+    
+    # Filter depth:
+    if(!is.null(depth_range)) {
+      envirData = envirData %>% dplyr::filter(depth > depth_range[1], depth < depth_range[2])
+    }
+    
+    # Aggregate over depths:
+    agg_dpt = st_apply(envirData, nc_dimnames, depth_FUN, na.rm = na_rm) %>% setNames(var_label)
+    # Extract time values from NC file:
+    these_nctimes = sort(unique(st_get_dimension_values(agg_dpt, nc_dimnames[3])))
+    
+    # # Function to match times:
+    # match_times = function(x) {
+    #   pts = x %>% st_as_sf(coords = lonlatdate[1:2], crs = 'OGC:CRS84') %>% 
+    #     st_as_stars()
+    #   lag_times = as.POSIXct(ymd(x$time) + time_lag, tz = "UTC")
+    #   index = sapply(lag_times, find_date, env_date = these_nctimes)
+    #   rpt_time = agg_dpt %>% dplyr::slice(time, index)
+    #   agg_time = st_apply(rpt_time, lonlatdate[1:2], time_FUN, na.rm = na_rm) %>% setNames(var_label)
+    #   extr_vals = st_extract(agg_time, pts) %>% dplyr::pull(var_label)
+    #   return(extr_vals)
+    # }
+    # 
+    # # Apply function over rows
+    # # This way is important to aggregate over times (lags):
+    # tempPts %>% rowwise() %>% mutate(var = match_times(pick(all_of(lonlatdate)))) %>% 
+    #   ungroup() -> tempPts2
+    
     # Find the closest date position:
-    these_nctimes = sort(unique(as.Date(time(envirData)))) # remove depth effect
-    index <- sapply(tempPts$Date, find_date, env_date = these_nctimes)
-    max_days_diff = max(abs(as.numeric(tempPts$Date - these_nctimes[index])))
+    index = sapply(tempPts %>% pull(nc_dimnames[3]), find_date, env_date = these_nctimes)
+    max_days_diff = max(abs(as.numeric(difftime(tempPts %>% pull(nc_dimnames[3]), these_nctimes[index], units = "days"))))
     
-    # Find number of depths:
-    depth_byTime = as.vector(table(time(envirData)))
-    group_vec = rep(1:length(these_nctimes), depth_byTime)
+    # Prepare observed data for matching:
+    pts = tempPts[,nc_dimnames]
+    pts = pts %>% st_as_sf(coords = nc_dimnames[1:2], crs = 'OGC:CRS84')
+    pts = st_as_stars(pts)
     
-    # Match spatially and temporally
-    envirValues <- envirData %>% 
-        terra::extract(y = as.matrix(tempPts[,lonlatdate[1:2]])) %>% 
-        t() %>% as.data.frame() %>% mutate(gr = group_vec) %>%
-        group_by(gr) %>% summarise_all(summ_fun, na.rm = na_rm) %>% 
-        dplyr::select(-gr) %>% t() %>% as.data.frame() %>%
-        mutate(index, .before = 1) %>% 
-        apply(1, function(x) x[-1][x[1]]) %>% as.vector()
-      
+    # Repeat ocean data by index (time):
+    # This is important for monthly oceanographic data:
+    if(length(these_nctimes) == 1) { # monthly data, do not slice
+      rpt_time = agg_dpt %>% dplyr::slice(time, 1)
+      envirValues = st_extract(rpt_time, pts) %>% dplyr::pull(var_label)
+    } else { # otherwise
+      rpt_time = agg_dpt %>% dplyr::slice(time, index)
+      extr_vals = st_extract(rpt_time, pts) %>% dplyr::pull(var_label)
+      envirValues = diag(extr_vals)
+    }
+    
     # Create new column with env information:
     output[[i]] <- tempPts %>% 
         mutate(new_envir = envirValues) %>% 

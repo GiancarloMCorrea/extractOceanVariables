@@ -1,9 +1,12 @@
 # Download environmental information and match it with observations.
 downloadCOPERNICUS <- function(xlim, ylim, datelim, 
-                               depthlim = c(0, 100),
-                               dataid, fields,
+                               depthlim = NULL,
+                               dataid, field,
                                saveEnvDir = getwd()){
-
+  
+  # Make date as Date class:
+  datelim = as.Date(datelim)
+  
   # Find first and last day of the month to download data:
   rangeDays = c(lubridate::floor_date(datelim[1], "month"),
                 lubridate::ceiling_date(datelim[2], "month"))
@@ -22,20 +25,34 @@ downloadCOPERNICUS <- function(xlim, ylim, datelim,
     
     # Download information from COPERNICUS::
     NCtmpname = file.path(saveEnvDir, "tmp_copernicus.nc")
-    atributos_cms$subset(
-      dataset_id        = dataid,
-      variables         = list(fields),
-      minimum_longitude = xlim[1],
-      maximum_longitude = xlim[2],
-      minimum_latitude  = ylim[1],
-      maximum_latitude  = ylim[2],
-      start_datetime    = format(x = tmp_datelim[1], format = "%Y-%m-%dT00:00:00"),
-      end_datetime      = format(x = tmp_datelim[2], format = "%Y-%m-%dT00:00:00"),
-      minimum_depth     = depthlim[1],
-      maximum_depth     = depthlim[2],
-      output_filename   = NCtmpname
-    ) 
-
+    if(is.null(depthlim)) {
+      atributos_cms$subset(
+        dataset_id        = dataid,
+        variables         = list(field),
+        minimum_longitude = xlim[1],
+        maximum_longitude = xlim[2],
+        minimum_latitude  = ylim[1],
+        maximum_latitude  = ylim[2],
+        start_datetime    = format(x = tmp_datelim[1], format = "%Y-%m-%dT00:00:00"),
+        end_datetime      = format(x = tmp_datelim[2], format = "%Y-%m-%dT00:00:00"),
+        output_filename   = NCtmpname
+      ) 
+    } else {
+      atributos_cms$subset(
+        dataset_id        = dataid,
+        variables         = list(field),
+        minimum_longitude = xlim[1],
+        maximum_longitude = xlim[2],
+        minimum_latitude  = ylim[1],
+        maximum_latitude  = ylim[2],
+        start_datetime    = format(x = tmp_datelim[1], format = "%Y-%m-%dT00:00:00"),
+        end_datetime      = format(x = tmp_datelim[2], format = "%Y-%m-%dT00:00:00"),
+        minimum_depth     = depthlim[1],
+        maximum_depth     = depthlim[2],
+        output_filename   = NCtmpname
+      )
+    }
+    
     # Rename the downloaded NC file:
     file.rename(from = NCtmpname, 
                 to = paste0(saveEnvDir, '/',
@@ -43,9 +60,9 @@ downloadCOPERNICUS <- function(xlim, ylim, datelim,
                                   format(tmp_datelim[2], format = '%Y-%m-%d'),
                                   sep = '_'),
                             ".nc") )
-
+    
     cat("Information from", as.character(startDay[i]), "to", as.character(endDay[i]), "downloaded.", "\n")
     
   } # by month loop
- 
+  
 }

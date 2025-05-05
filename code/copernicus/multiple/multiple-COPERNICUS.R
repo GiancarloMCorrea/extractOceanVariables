@@ -5,7 +5,7 @@ require(readr)
 require(ggplot2)
 require(sf)
 require(dplyr)
-require(terra)
+require(stars)
 require(viridis)
 require(lubridate)
 require(reticulate)
@@ -20,16 +20,16 @@ source('code/auxFunctions.R')
 # Make your that your observations are within these limits
 lonLims = c(-83, -69)
 latLims = c(-19, -3)
-dateLims = c(as.Date("2013-01-01"), as.Date("2013-12-31"))
+dateLims = c("2015-02-01", "2015-03-31") # %Y-%m-%d format
 
 # -------------------------------------------------------------------------
 # Define dataset id and variable
-dataid = "cmems_mod_glo_phy_my_0.083deg_P1D-m"
-fields = "mlotst"
+dataid = "cmems_mod_glo_phy_my_0.083deg_P1M-m"
+field = "thetao"
 
 # -------------------------------------------------------------------------
 # Define folder where environmental datasets will be stored:
-saveEnvDir = file.path("C:/Use/GitHub/extractOceanVariables/env_data", fields)
+saveEnvDir = file.path("C:/Use/GitHub/extractOceanVariables/env_data", field)
 
 # -------------------------------------------------------------------------
 # Define name for Phyton virtual environment:
@@ -48,7 +48,7 @@ download_data = TRUE
 if(download_data) {
   downloadCOPERNICUS(xlim = lonLims, ylim = latLims, 
                      datelim = dateLims,
-                     fields = fields, 
+                     field = field, 
                      dataid = dataid,
                      saveEnvDir = saveEnvDir)
 }
@@ -68,7 +68,7 @@ date_col = "Date"
 envData = matchCOPERNICUS(data           = mainDat, 
                           lonlat_cols    = lonlat_cols,
                           date_col       = date_col,
-                          var_label      = fields, 
+                          var_label      = field, 
                           varPath        = saveEnvDir)
 
 # Save new data with environmental information:
