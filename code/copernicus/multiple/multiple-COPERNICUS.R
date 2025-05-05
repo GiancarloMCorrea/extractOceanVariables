@@ -20,11 +20,11 @@ source('code/auxFunctions.R')
 # Make your that your observations are within these limits
 lonLims = c(-83, -69)
 latLims = c(-19, -3)
-dateLims = c("2015-02-01", "2015-03-31") # %Y-%m-%d format
+dateLims = c("2015-02-01", "2015-04-30") # %Y-%m-%d format
 
 # -------------------------------------------------------------------------
 # Define dataset id and variable
-dataid = "cmems_mod_glo_phy_my_0.083deg_P1M-m"
+dataid = "cmems_mod_glo_phy_my_0.083deg_P1D-m"
 field = "thetao"
 
 # -------------------------------------------------------------------------
