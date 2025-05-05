@@ -29,7 +29,7 @@ field = "thetao"
 
 # -------------------------------------------------------------------------
 # Define folder where environmental datasets will be stored:
-saveEnvDir = file.path("C:/Use/GitHub/extractOceanVariables/env_data", field)
+savedir = file.path("C:/Use/GitHub/extractOceanVariables/env_data", field)
 
 # -------------------------------------------------------------------------
 # Define name for Phyton virtual environment:
@@ -50,7 +50,7 @@ if(download_data) {
                      datelim = dateLims,
                      field = field, 
                      dataid = dataid,
-                     saveEnvDir = saveEnvDir)
+                     savedir = savedir)
 }
 
 
@@ -69,7 +69,7 @@ envData = matchCOPERNICUS(data           = mainDat,
                           lonlat_cols    = lonlat_cols,
                           date_col       = date_col,
                           var_label      = field, 
-                          varPath        = saveEnvDir)
+                          var_path       = savedir)
 
 # Save new data with environmental information:
 write.csv(envData, file = file.path('data', paste0("data_with_", fields, "_COPERNICUS.csv")), row.names = FALSE)

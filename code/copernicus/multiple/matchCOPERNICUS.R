@@ -1,6 +1,7 @@
 # Download environmental information and match it with observations.
 matchCOPERNICUS <- function(data, lonlat_cols, date_col, 
-                            var_label = 'env_var', varPath, 
+                            var_label = 'env_var', 
+                            var_path, 
                             depth_range = NULL,
                             depth_FUN = "mean",
                             #time_lag = 0,
@@ -41,7 +42,7 @@ matchCOPERNICUS <- function(data, lonlat_cols, date_col,
     tempPts <- exPts %>% filter(month == monthList[i])
     
     # Find NC file for that month:
-    nc_file = file.path(varPath, paste0(start_day, "_", end_day, ".nc"))
+    nc_file = file.path(var_path, paste0(start_day, "_", end_day, ".nc"))
     
     if(!file.exists(nc_file)){
       stop("Netcdf file not found. Did you download environmental data for that date range? Check if the file is in the correct path.")
