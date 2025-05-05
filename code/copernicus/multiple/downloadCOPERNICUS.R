@@ -2,7 +2,7 @@
 downloadCOPERNICUS <- function(xlim, ylim, datelim, 
                                depthlim = NULL,
                                dataid, field,
-                               savedir = getwd()){
+                               savedir = paste0(getwd(), "/")){
   
   # Make date as Date class:
   datelim = as.Date(datelim)
@@ -24,7 +24,7 @@ downloadCOPERNICUS <- function(xlim, ylim, datelim,
     tmp_datelim = c(startDay[i], endDay[i])
     
     # Download information from COPERNICUS::
-    NCtmpname = file.path(savedir, "tmp_copernicus.nc")
+    NCtmpname = paste0(savedir, "tmp_copernicus.nc")
     if(is.null(depthlim)) {
       atributos_cms$subset(
         dataset_id        = dataid,
@@ -55,7 +55,7 @@ downloadCOPERNICUS <- function(xlim, ylim, datelim,
     
     # Rename the downloaded NC file:
     file.rename(from = NCtmpname, 
-                to = paste0(savedir, '/',
+                to = paste0(savedir, 
                             paste(format(tmp_datelim[1], format = '%Y-%m-%d'),
                                   format(tmp_datelim[2], format = '%Y-%m-%d'),
                                   sep = '_'),
