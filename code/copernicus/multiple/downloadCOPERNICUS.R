@@ -58,13 +58,9 @@ downloadCOPERNICUS <- function(xlim, ylim, datelim,
     
     # Rename the downloaded NC file:
     file.rename(from = NCtmpname, 
-                to = paste0(savedir, 
-                            paste(format(tmp_datelim[1], format = '%Y-%m-%d'),
-                                  format(tmp_datelim[2], format = '%Y-%m-%d'),
-                                  sep = '_'),
-                            ".nc") )
+                to = paste0(savedir, startDay[i], ".nc"))
     
-    cat("Information from", as.character(startDay[i]), "to", as.character(endDay[i]), "downloaded.", "\n")
+    cat("Information for month", substr(startDay[i], start = 1, stop = 7), "downloaded.", "\n")
     
   } # by month loop
   

@@ -7,8 +7,9 @@ matchCOPERNICUS <- function(data, lonlat_cols, date_col,
                             #time_lag = 0,
                             #time_FUN = "mean",
                             na_rm = TRUE,
-							              show_plot = FALSE,
-							              nc_dimnames = c("longitude", "latitude", "time")){
+							show_plot = FALSE,
+							nc_dimnames = c("x", "y", "time"))
+  {
   
   # Load required libraries:
   require(dplyr)
@@ -54,7 +55,7 @@ matchCOPERNICUS <- function(data, lonlat_cols, date_col,
     }  
     
     # Read file:
-    envirData <- stars::read_ncdf(nc_file) 
+    envirData <- stars::read_stars(nc_file) 
     if(show_plot) plot(envirData)
     
     if(i == 1) {
@@ -65,7 +66,10 @@ matchCOPERNICUS <- function(data, lonlat_cols, date_col,
     
     # Filter depth:
     if(!is.null(depth_range)) {
-      envirData = envirData %>% dplyr::filter(depth > depth_range[1], depth < depth_range[2])
+	  depth_values = st_get_dimension_values(envirData, 'depth')
+	  depth_values = as.numeric(depth_values) # in case there is units
+	  index_depth = which(depth_values > depth_range[1] & depth_values <= depth_range[2])
+	  envirData = envirData %>% dplyr::slice(depth, index_depth)
     }
     
     # Aggregate over depths:
