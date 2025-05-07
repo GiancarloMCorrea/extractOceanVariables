@@ -7,7 +7,6 @@ matchCOPERNICUS <- function(data, lonlat_cols, date_col,
                             #time_lag = 0,
                             #time_FUN = "mean",
                             na_rm = TRUE,
-							show_plot = FALSE,
 							nc_dimnames = c("x", "y", "time"))
   {
   
@@ -42,13 +41,12 @@ matchCOPERNICUS <- function(data, lonlat_cols, date_col,
     
     # Find start and end day of month:
     start_day = lubridate::floor_date(monthList[i], "month")
-    end_day = lubridate::ceiling_date(monthList[i], "month") - 1
     
     # Subset month
     tempPts <- exPts %>% filter(month == monthList[i])
     
     # Find NC file for that month:
-    nc_file = file.path(var_path, paste0(start_day, "_", end_day, ".nc"))
+    nc_file = file.path(var_path, paste0(start_day, ".nc"))
     
     if(!file.exists(nc_file)){
       stop("Netcdf file not found. Did you download environmental data for that date range? Check if the file is in the correct path.")
@@ -56,8 +54,8 @@ matchCOPERNICUS <- function(data, lonlat_cols, date_col,
     
     # Read file:
     envirData <- stars::read_stars(nc_file) 
-    if(show_plot) plot(envirData)
-    
+    st_crs(envirData) = 'OGC:CRS84'
+	
     if(i == 1) {
       # Print dimension names and values:
       dim_names = dimnames(envirData)
@@ -120,7 +118,7 @@ matchCOPERNICUS <- function(data, lonlat_cols, date_col,
         rename(all_of(newNames))  %>% 
         dplyr::select(c(names(newNames), 'id_row'))
 
-    cat("Month", as.character(monthList[i]), "ready. Maximum number of days difference:", max_days_diff, "\n")
+    cat("Month", as.character(substr(monthList[i], start = 1, stop = 7)), "ready. Maximum number of days difference:", max_days_diff, "\n")
     
   } # by month loop
   
