@@ -7,7 +7,7 @@ matchCOPERNICUS <- function(data, lonlat_cols, date_col,
                             #time_lag = 0,
                             #time_FUN = "mean",
                             na_rm = TRUE,
-							nc_dimnames = c("x", "y", "time"))
+							              nc_dimnames = c("x", "y", "time"))
   {
   
   # Load required libraries:
@@ -55,23 +55,27 @@ matchCOPERNICUS <- function(data, lonlat_cols, date_col,
     # Read file:
     envirData <- stars::read_stars(nc_file) 
     st_crs(envirData) = 'OGC:CRS84'
-	
+    dim_names = dimnames(envirData)
+    
     if(i == 1) {
       # Print dimension names and values:
-      dim_names = dimnames(envirData)
       cat("Dimensions are:", paste(dim_names, collapse = ', '), "\n")
     }
     
     # Filter depth:
-    if(!is.null(depth_range)) {
-	  depth_values = st_get_dimension_values(envirData, 'depth')
-	  depth_values = as.numeric(depth_values) # in case there is units
-	  index_depth = which(depth_values > depth_range[1] & depth_values <= depth_range[2])
-	  envirData = envirData %>% dplyr::slice(depth, index_depth)
+    if('depth' %in% dim_names & !is.null(depth_range)) {
+    	 depth_values = st_get_dimension_values(envirData, 'depth')
+    	 depth_values = as.numeric(depth_values) # in case there is units
+    	 index_depth = which(depth_values > depth_range[1] & depth_values <= depth_range[2])
+    	 envirData = envirData %>% dplyr::slice(depth, index_depth)
     }
-    
+
     # Aggregate over depths:
-    agg_dpt = st_apply(envirData, nc_dimnames, depth_FUN, na.rm = na_rm) %>% setNames(var_label)
+    if('depth' %in% dim_names) {
+      agg_dpt = st_apply(envirData, nc_dimnames, depth_FUN, na.rm = na_rm) %>% setNames(var_label)
+    } else {
+      agg_dpt = envirData %>% setNames(var_label)
+    }
     # Extract time values from NC file:
     these_nctimes = sort(unique(st_get_dimension_values(agg_dpt, nc_dimnames[3])))
     

@@ -26,11 +26,11 @@ atributos_cms <- import(module = "copernicusmarine")
 
 # -------------------------------------------------------------------------
 # Define folder where environmental datasets will be stored:
-saveEnvDir <- "C:/Use/GitHub/extractOceanVariables/env_data"
+savedir <- "C:/Use/GitHub/extractOceanVariables/env_data/"
 
 # -------------------------------------------------------------------------
 # Read data with observations:
-mainDat = readr::read_csv(file = "data/example_data.csv") 
+mainDat = readr::read_delim(file = "data/example_data.csv", delim = ";") 
 
 # Define Lan/Lot and Date column names in your dataset:
 lonlat_cols = c("Lon_M", "Lat_M")
@@ -39,15 +39,17 @@ date_col = "Date"
 # -------------------------------------------------------------------------
 # Define dataset id and variable
 dataid = "cmems_mod_glo_phy_my_0.083deg_P1D-m"
-fields = "mlotst"
+field = "mlotst"
 
 # -------------------------------------------------------------------------
 # Download environmental information and matching with observations:
 # A column with the environmental variable will be added
-envData = extractCOPERNICUS(data       = mainDat,
-                            saveEnvDir = saveEnvDir,
-                            dataid     = dataid,
-                            fields     = fields)
+envData = extractCOPERNICUS(data        = mainDat,
+                            lonlat_cols = lonlat_cols,
+                            date_col    = date_col,
+                            savedir     = savedir,
+                            dataid      = dataid,
+                            field       = field)
 
 # Save new data with environmental information:
-write.csv(envData, file = file.path('data', paste0("data_with_", fields, "_COPERNICUS.csv")), row.names = FALSE)
+write.csv(envData, file = file.path('data', paste0("data_with_", field, "_COPERNICUS.csv")), row.names = FALSE)

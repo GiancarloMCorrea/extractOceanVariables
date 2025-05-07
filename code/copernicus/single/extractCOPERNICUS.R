@@ -1,32 +1,37 @@
 # Download environmental information and match it with observations.
-extractCOPERNICUS <- function(data, saveEnvDir, dataid, fields,
-                              depthlim = c(0, 100),
-                              summ_fun = "mean", na_rm = TRUE,
-                              saveEnvFiles = FALSE,
-							  show_plot = FALSE){
+extractCOPERNICUS <- function(data, lonlat_cols, date_col,
+                              savedir, 
+                              dataid, field,
+                              depthlim = NULL,
+                              depth_FUN = "mean", na_rm = TRUE,
+                              nc_dimnames = c("x", "y", "time"))
+  {
 
+  # Load required libraries:
+  require(dplyr)
+  require(lubridate)
+  require(stars)
+  
   # Define input data col names used in this function:
-  lonlatdate = c("Lon", "Lat", "Date")
+  lonlatdate = nc_dimnames
   
   # Create id rows to do match later:
   data = data %>% mutate(id_row = 1:n())
   
   # Preprocess the data:
-  exPts <- data %>% dplyr::select(all_of(c(lonlat_cols, date_col, 'id_row'))) %>% 
-                    dplyr::rename(Lon = lonlat_cols[1],
-                                  Lat = lonlat_cols[2],
-                                  Date = date_col)
-  exPts$Date = as.Date(exPts$Date)
+  exPts = data[,c(lonlat_cols, date_col, 'id_row')]
+  colnames(exPts)[1:3] = nc_dimnames
+  exPts[,nc_dimnames[3]] = as.POSIXct(exPts %>% pull(nc_dimnames[3]), tz = "UTC")
   
   # Add month column:
-  exPts = exPts %>% mutate(month = as.Date(format(x = Date, format = "%Y-%m-01")))
+  exPts$month = as.Date(format(exPts %>% pull(nc_dimnames[3]), format = "%Y-%m-01"))
   
   # Create folder to save env information:
-  if(!dir.exists(saveEnvDir)) dir.create(path = saveEnvDir, showWarnings = FALSE, recursive = TRUE)
+  if(!dir.exists(savedir)) dir.create(path = savedir, showWarnings = FALSE, recursive = TRUE)
   
   # Set new column name with env information:
   newNames <- "new_envir"
-  names(newNames) <- fields
+  names(newNames) <- field
   
   # List to save results
   monthList <- unique(exPts$month)
@@ -46,63 +51,84 @@ extractCOPERNICUS <- function(data, saveEnvDir, dataid, fields,
     datelim = seq(from = monthList[i], by = "month", length.out = 2) - c(0, 1)
     
     # Download information from COPERNICUS::
-    NCtmpname = file.path(saveEnvDir, "tmp_copernicus.nc")
-    atributos_cms$subset(
-      dataset_id        = dataid,
-      variables         = list(fields),
-      minimum_longitude = xlim[1],
-      maximum_longitude = xlim[2],
-      minimum_latitude  = ylim[1],
-      maximum_latitude  = ylim[2],
-      start_datetime    = format(x = datelim[1], format = "%Y-%m-%dT00:00:00"),
-      end_datetime      = format(x = datelim[2], format = "%Y-%m-%dT00:00:00"),
-      minimum_depth     = depthlim[1],
-      maximum_depth     = depthlim[2],
-      output_filename   = NCtmpname
-    ) 
+    NCtmpname = paste0(savedir, "tmp_copernicus.nc")
+    if(is.null(depthlim)) {
+      atributos_cms$subset(
+        dataset_id        = dataid,
+        variables         = list(field),
+        minimum_longitude = xlim[1],
+        maximum_longitude = xlim[2],
+        minimum_latitude  = ylim[1],
+        maximum_latitude  = ylim[2],
+        start_datetime    = format(x = datelim[1], format = "%Y-%m-%dT00:00:00"),
+        end_datetime      = format(x = datelim[2], format = "%Y-%m-%dT00:00:00"),
+        output_filename   = NCtmpname
+      ) 
+    } else {
+      atributos_cms$subset(
+        dataset_id        = dataid,
+        variables         = list(field),
+        minimum_longitude = xlim[1],
+        maximum_longitude = xlim[2],
+        minimum_latitude  = ylim[1],
+        maximum_latitude  = ylim[2],
+        start_datetime    = format(x = datelim[1], format = "%Y-%m-%dT00:00:00"),
+        end_datetime      = format(x = datelim[2], format = "%Y-%m-%dT00:00:00"),
+        minimum_depth     = depthlim[1],
+        maximum_depth     = depthlim[2],
+        output_filename   = NCtmpname
+      )
+    }
       
     # Read file:
-    envirData <- rast(x = file.path(saveEnvDir, "tmp_copernicus.nc")) 
-    if(show_plot) plot(envirData)
-      
-    # Find the closest date position:
-    these_nctimes = sort(unique(as.Date(time(envirData)))) # remove depth effect
-    index <- sapply(tempPts$Date, find_date, env_date = these_nctimes)
-    max_days_diff = max(abs(as.numeric(tempPts$Date - these_nctimes[index])))
-
-    # Find number of depths:
-    depth_byTime = as.vector(table(time(envirData)))
-    group_vec = rep(1:length(these_nctimes), depth_byTime)
+    envirData <- stars::read_stars(NCtmpname)
+    st_crs(envirData) = 'OGC:CRS84'
+    dim_names = dimnames(envirData)
     
-    # Match spatially and temporally
-    envirValues <- envirData %>% 
-      terra::extract(y = as.matrix(tempPts[,lonlatdate[1:2]])) %>% 
-      t() %>% as.data.frame() %>% mutate(gr = group_vec) %>%
-      group_by(gr) %>% summarise_all(summ_fun, na.rm = na_rm) %>% 
-      dplyr::select(-gr) %>% t() %>% as.data.frame() %>%
-      mutate(index, .before = 1) %>% 
-      apply(1, function(x) x[-1][x[1]]) %>% as.vector()
+    if(i == 1) {
+      # Print dimension names and values:
+      cat("Dimensions are:", paste(dim_names, collapse = ', '), "\n")
+    }
+    
+    # Aggregate over depths:
+    if('depth' %in% dim_names) {
+      agg_dpt = st_apply(envirData, nc_dimnames, depth_FUN, na.rm = na_rm) %>% setNames(field)
+    } else {
+      agg_dpt = envirData %>% setNames(field)
+    }
+    # Extract time values from NC file:
+    these_nctimes = sort(unique(st_get_dimension_values(agg_dpt, nc_dimnames[3])))
+    
+    # Find the closest date position:
+    index = sapply(tempPts %>% pull(nc_dimnames[3]), find_date, env_date = these_nctimes)
+    max_days_diff = max(abs(as.numeric(difftime(tempPts %>% pull(nc_dimnames[3]), these_nctimes[index], units = "days"))))
+    
+    # Prepare observed data for matching:
+    pts = tempPts[,nc_dimnames]
+    pts = pts %>% st_as_sf(coords = nc_dimnames[1:2], crs = 'OGC:CRS84')
+    pts = st_as_stars(pts)
+    
+    # Repeat ocean data by index (time):
+    # This is important for monthly oceanographic data:
+    if(length(these_nctimes) == 1) { # monthly data, do not slice
+      rpt_time = agg_dpt %>% dplyr::slice(time, 1)
+      envirValues = st_extract(rpt_time, pts) %>% dplyr::pull(field)
+    } else { # otherwise
+      rpt_time = agg_dpt %>% dplyr::slice(time, index)
+      extr_vals = st_extract(rpt_time, pts) %>% dplyr::pull(field)
+      envirValues = diag(extr_vals)
+    }
     
     # Create new column with env information:
     output[[i]] <- tempPts %>% 
-        mutate(new_envir = envirValues) %>% 
-        rename(all_of(newNames))  %>% 
-        dplyr::select(c(names(newNames), 'id_row'))
-      
-    if(saveEnvFiles) {
-      # Rename the downloaded NC file:
-      file.rename(from = NCtmpname, 
-                to = paste0(saveEnvDir, '/',
-                                paste(fields, 
-                                      format(datelim[1], format = '%Y-%m-%d'),
-                                      format(datelim[2], format = '%Y-%m-%d'),
-                                      sep = '_'),
-                                ".nc") )
-    } else {
-      file.remove(NCtmpname)
-    }
+      mutate(new_envir = envirValues) %>% 
+      rename(all_of(newNames))  %>% 
+      dplyr::select(c(names(newNames), 'id_row'))
+    
+    # Remove downloaded file:
+    file.remove(NCtmpname)
 
-    cat("Month", as.character(monthList[i]), "ready. Maximum number of days difference:", max_days_diff, "\n")
+    cat("Month", as.character(substr(monthList[i], start = 1, stop = 7)), "ready. Maximum number of days difference:", max_days_diff, "\n")
     
   } # by month loop
   

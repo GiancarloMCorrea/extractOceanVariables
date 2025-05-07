@@ -30,6 +30,7 @@ field = "thetao"
 # -------------------------------------------------------------------------
 # Define folder where environmental datasets will be stored:
 savedir = file.path("C:/Use/GitHub/extractOceanVariables/env_data", field)
+savedir = paste0(savedir, '/')
 
 # -------------------------------------------------------------------------
 # Define name for Phyton virtual environment:
@@ -56,7 +57,7 @@ if(download_data) {
 
 # -------------------------------------------------------------------------
 # Read data with observations:
-mainDat = readr::read_csv(file = "data/example_data.csv") 
+mainDat = readr::read_delim(file = "data/example_data.csv", delim = ";") 
 
 # Define Lan/Lot and Date column names in your dataset:
 lonlat_cols = c("Lon_M", "Lat_M")
