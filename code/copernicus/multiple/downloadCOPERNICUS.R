@@ -4,6 +4,9 @@ downloadCOPERNICUS <- function(xlim, ylim, datelim,
                                dataid, field,
                                savedir = paste0(getwd(), "/")){
   
+  # Load required libraries:
+  require(lubridate)
+  
   # Make date as Date class:
   datelim = as.Date(datelim)
   

@@ -9,7 +9,12 @@ matchCOPERNICUS <- function(data, lonlat_cols, date_col,
                             na_rm = TRUE,
 							              show_plot = FALSE,
 							              nc_dimnames = c("longitude", "latitude", "time")){
-
+  
+  # Load required libraries:
+  require(dplyr)
+  require(lubridate)
+  require(stars)
+  
   # Create id rows to do match later:
   data = data %>% mutate(id_row = 1:n())
   
