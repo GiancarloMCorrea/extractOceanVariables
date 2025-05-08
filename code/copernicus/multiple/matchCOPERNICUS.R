@@ -115,6 +115,9 @@ matchCOPERNICUS <- function(data, lonlat_cols, date_col,
       envirValues = diag(extr_vals)
     }
     
+    # Assuming all variables are numeric: (may cause problems with caterogial variables if any)
+    envirValues = as.numeric(envirValues)
+        
     # Create new column with env information:
     output[[i]] <- tempPts %>% 
         mutate(new_envir = envirValues) %>% 
