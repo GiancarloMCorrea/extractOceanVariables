@@ -103,8 +103,7 @@ matchCOPERNICUS <- function(data, lonlat_cols, date_col,
     # Prepare observed data for matching:
     pts = tempPts[,nc_dimnames]
     pts = pts %>% st_as_sf(coords = nc_dimnames[1:2], crs = 'OGC:CRS84')
-    pts = st_as_stars(pts)
-    
+
     # Repeat ocean data by index (time):
     # This is important for monthly oceanographic data:
     if(length(these_nctimes) == 1) { # monthly data, do not slice
