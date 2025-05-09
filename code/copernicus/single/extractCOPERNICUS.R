@@ -106,18 +106,20 @@ extractCOPERNICUS <- function(data, lonlat_cols, date_col,
     # Prepare observed data for matching:
     pts = tempPts[,nc_dimnames]
     pts = pts %>% st_as_sf(coords = nc_dimnames[1:2], crs = 'OGC:CRS84')
-    pts = st_as_stars(pts)
-    
+
     # Repeat ocean data by index (time):
     # This is important for monthly oceanographic data:
     if(length(these_nctimes) == 1) { # monthly data, do not slice
       rpt_time = agg_dpt %>% dplyr::slice(time, 1)
       envirValues = st_extract(rpt_time, pts) %>% dplyr::pull(field)
     } else { # otherwise
-      rpt_time = agg_dpt %>% dplyr::slice(time, index)
-      extr_vals = st_extract(rpt_time, pts) %>% dplyr::pull(field)
-      envirValues = diag(extr_vals)
+      extr_vals = st_extract(agg_dpt, pts) %>% dplyr::pull(field)
+      envirValues = extr_vals %>% as.data.frame() %>% mutate(index, .before = 1) %>% 
+                        apply(1, function(x) x[-1][x[1]]) %>% as.vector()
     }
+    
+    # Assuming all variables are numeric: (may cause problems with caterogial variables if any)
+    envirValues = as.numeric(envirValues)
     
     # Create new column with env information:
     output[[i]] <- tempPts %>% 

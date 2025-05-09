@@ -29,7 +29,7 @@ field = "thetao"
 
 # -------------------------------------------------------------------------
 # Define folder where environmental datasets will be stored:
-savedir = file.path("C:/Use/GitHub/extractOceanVariables/env_data", field)
+savedir = file.path(getwd(), "env_data", field)
 savedir = paste0(savedir, '/')
 
 # -------------------------------------------------------------------------

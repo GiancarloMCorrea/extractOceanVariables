@@ -110,9 +110,9 @@ matchCOPERNICUS <- function(data, lonlat_cols, date_col,
       rpt_time = agg_dpt %>% dplyr::slice(time, 1)
       envirValues = st_extract(rpt_time, pts) %>% dplyr::pull(var_label)
     } else { # otherwise
-      rpt_time = agg_dpt %>% dplyr::slice(time, index)
-      extr_vals = st_extract(rpt_time, pts) %>% dplyr::pull(var_label)
-      envirValues = diag(extr_vals)
+      extr_vals = st_extract(agg_dpt, pts) %>% dplyr::pull(var_label)
+      envirValues = extr_vals %>% as.data.frame() %>% mutate(index, .before = 1) %>% 
+                      apply(1, function(x) x[-1][x[1]]) %>% as.vector()
     }
     
     # Assuming all variables are numeric: (may cause problems with caterogial variables if any)
