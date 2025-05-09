@@ -12,6 +12,14 @@ extractCOPERNICUS <- function(data, lonlat_cols, date_col,
   require(lubridate)
   require(stars)
   
+  # Check column names:
+  if(field %in% colnames(data)){
+    stop("There is already a column named ", field, " in your data.")
+  } 
+  if("id_row" %in% colnames(data)){
+    stop("There is a column named 'id_row'. Please change the name of that column to something else.")
+  } 
+  
   # Define input data col names used in this function:
   lonlatdate = nc_dimnames
   

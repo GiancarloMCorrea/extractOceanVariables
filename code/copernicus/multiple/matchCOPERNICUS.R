@@ -15,6 +15,14 @@ matchCOPERNICUS <- function(data, lonlat_cols, date_col,
   require(lubridate)
   require(stars)
   
+  # Check column names:
+  if(var_label %in% colnames(data)){
+    stop("There is already a column named ", var_label, ". Please change the 'var_label' argument.")
+  } 
+  if("id_row" %in% colnames(data)){
+    stop("There is a column named 'id_row'. Please change the name of that column to something else.")
+  } 
+  
   # Create id rows to do match later:
   data = data %>% mutate(id_row = 1:n())
   

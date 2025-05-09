@@ -26,7 +26,7 @@ matchGODAS <- function(data, lonlat_cols, date_col,
   exPts$month = as.Date(format(exPts %>% pull(nc_dimnames[3]), format = "%Y-%m-01"))
   
   # Get unique months
-  monthList <- unique(exPts$month)
+  monthList <- sort(unique(exPts$month))
   
   # Set new column name with env information:
   newNames <- "new_envir"
