@@ -34,7 +34,7 @@ extractCOPERNICUS <- function(data, lonlat_cols, date_col,
   names(newNames) <- field
   
   # List to save results
-  monthList <- unique(exPts$month)
+  monthList <- sort(unique(exPts$month))
   
   # Definir una lista vacía que guardará los datos de salida
   output <- list()
