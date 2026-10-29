@@ -14,6 +14,7 @@ matchCOPERNICUS <- function(data, lonlat_cols, date_col,
   require(dplyr)
   require(lubridate)
   require(stars)
+  require(abind)
   
   # Check column names:
   if(var_label %in% colnames(data)){
@@ -53,6 +54,11 @@ matchCOPERNICUS <- function(data, lonlat_cols, date_col,
     # Subset month
     tempPts <- exPts %>% filter(month == monthList[i])
     
+	# Prepare observed data for matching:
+	# Important to do it here
+    pts = tempPts[,nc_dimnames]
+    pts = pts %>% st_as_sf(coords = nc_dimnames[1:2], crs = 'OGC:CRS84')
+	
     # Find NC file for that month:
     nc_file = file.path(var_path, paste0(start_day, ".nc"))
     
@@ -69,24 +75,17 @@ matchCOPERNICUS <- function(data, lonlat_cols, date_col,
       # Print dimension names and values:
       cat("Dimensions are:", paste(dim_names, collapse = ', '), "\n")
     }
-    
-    # Filter depth:
-    if('depth' %in% dim_names & !is.null(depth_range)) {
-    	 depth_values = st_get_dimension_values(envirData, 'depth')
-    	 depth_values = as.numeric(depth_values) # in case there is units
-    	 index_depth = which(depth_values > depth_range[1] & depth_values <= depth_range[2])
-    	 envirData = envirData %>% dplyr::slice(depth, index_depth)
-    }
 
-    # Aggregate over depths:
-    if('depth' %in% dim_names) {
-      agg_dpt = st_apply(envirData, nc_dimnames, depth_FUN, na.rm = na_rm) %>% setNames(var_label)
-    } else {
-      agg_dpt = envirData %>% setNames(var_label)
-    }
+	# To improve performance:
+	envirData <- st_crop(envirData, st_bbox(pts))
+	
+	# Set variable name:
+	envirData = envirData %>% setNames(var_label)
+	
     # Extract time values from NC file:
-    these_nctimes = sort(unique(st_get_dimension_values(agg_dpt, nc_dimnames[3])))
-    
+    these_nctimes = sort(unique(st_get_dimension_values(envirData, nc_dimnames[3])))
+    these_nctimes = as.POSIXct(these_nctimes, tz = "UTC")
+	
     # # Function to match times:
     # match_times = function(x) {
     #   pts = x %>% st_as_sf(coords = lonlatdate[1:2], crs = 'OGC:CRS84') %>% 
@@ -107,25 +106,47 @@ matchCOPERNICUS <- function(data, lonlat_cols, date_col,
     # Find the closest date position:
     index = sapply(tempPts %>% pull(nc_dimnames[3]), find_date, env_date = these_nctimes)
     max_days_diff = max(abs(as.numeric(difftime(tempPts %>% pull(nc_dimnames[3]), these_nctimes[index], units = "days"))))
-    
-    # Prepare observed data for matching:
-    pts = tempPts[,nc_dimnames]
-    pts = pts %>% st_as_sf(coords = nc_dimnames[1:2], crs = 'OGC:CRS84')
 
     # Repeat ocean data by index (time):
     # This is important for monthly oceanographic data:
     if(length(these_nctimes) == 1) { # monthly data, do not slice
-      rpt_time = agg_dpt %>% dplyr::slice(time, 1)
-      envirValues = st_extract(rpt_time, pts) %>% dplyr::pull(var_label)
+      rpt_time = envirData %>% dplyr::slice(time, 1)
+      extr_vals = st_extract(rpt_time, pts) %>% dplyr::pull(var_label)
     } else { # otherwise
-      extr_vals = st_extract(agg_dpt, pts) %>% dplyr::pull(var_label)
+      extr_vals = st_extract(envirData, pts) %>% dplyr::pull(var_label)
+    }
+	
+	# Filter depth here to improve performance:
+	array_names = names(dim(extr_vals))
+	depth_pos = which(array_names == "depth")
+	allvar_pos = which(array_names != "depth")
+    if('depth' %in% dim_names & !is.null(depth_range)) {
+    	depth_values = st_get_dimension_values(envirData, 'depth')
+    	depth_values = as.numeric(depth_values) # in case there is units
+    	index_depth = which(depth_values > depth_range[1] & depth_values <= depth_range[2])
+		extr_vals = abind::asub(extr_vals, index_depth, depth_pos)
+    }
+	
+    # Aggregate over depths:
+    if('depth' %in% dim_names) {
+	  depth_FUN_call <- match.fun(depth_FUN)   # convert string → function
+      extr_vals = apply(extr_vals, MARGIN = allvar_pos, FUN = depth_FUN_call)
+    }
+    
+	# Get vector with env data:
+	if(length(these_nctimes) == 1) { # monthly data, do not slice
+	  envirValues = extr_vals
+    } else { # otherwise
       envirValues = extr_vals %>% as.data.frame() %>% mutate(index, .before = 1) %>% 
                       apply(1, function(x) x[-1][x[1]]) %>% as.vector()
     }
-    
+	
     # Assuming all variables are numeric: (may cause problems with caterogial variables if any)
     envirValues = as.numeric(envirValues)
         
+	# Remove to save storage:
+	rm(envirData)
+	
     # Create new column with env information:
     output[[i]] <- tempPts %>% 
         mutate(new_envir = envirValues) %>% 

@@ -106,7 +106,8 @@ extractCOPERNICUS <- function(data, lonlat_cols, date_col,
     }
     # Extract time values from NC file:
     these_nctimes = sort(unique(st_get_dimension_values(agg_dpt, nc_dimnames[3])))
-    
+    these_nctimes = as.POSIXct(these_nctimes, tz = "UTC")
+	
     # Find the closest date position:
     index = sapply(tempPts %>% pull(nc_dimnames[3]), find_date, env_date = these_nctimes)
     max_days_diff = max(abs(as.numeric(difftime(tempPts %>% pull(nc_dimnames[3]), these_nctimes[index], units = "days"))))

@@ -77,6 +77,7 @@ matchGODAS <- function(data, lonlat_cols, date_col,
     }
     # Extract time values from NC file:
     these_nctimes = sort(unique(st_get_dimension_values(agg_dpt, nc_dimnames[3])))
+	these_nctimes = as.Date(these_nctimes)
 
     # Find the closest date position:
     index = which(these_nctimes == as.POSIXct(monthList[i], tz = 'UTC'))
